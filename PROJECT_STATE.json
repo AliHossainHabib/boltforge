@@ -1,0 +1,63 @@
+{
+  "current_phase": "Phase 3 - Open-source/pub.dev readiness (in progress; publish itself deferred to the user)",
+  "current_step": "The user confirmed full real-world verification: dart analyze clean, dart test 152/152 passing, and boltforge create/generate working end-to-end from outside the repository on a real Windows machine (--auth=password, --auth=otp, flutter analyze, flutter test, generate with automatic DI registration, re-running generate, and all three conflict states Cancel/Overwrite/Merge). The user also applied three of their own fixes before this phase (sdk constraint relaxed to '>=3.0.0 <4.0.0', a missing DioExceptionType.transformTimeout case in api_error.dart.tmpl, and a wrong import depth for app_colors.dart in the three ui/feedback template files) which were synced into this copy and are considered settled — not to be reverted. Phase 3 (open-source/pub.dev readiness) was then executed step by step: pubspec.yaml cleanup (removed the unused `recase` dependency, added `topics`, replaced `your-org` placeholders with the real GitHub account `alihossainhabib` without assuming the repository exists yet), LICENSE (MIT, Ali Hussein Habib, 2026), CHANGELOG.md (0.1.0, only real shipped features), CONTRIBUTING.md/CODE_OF_CONDUCT.md/SECURITY.md/.gitignore, example/README.md (a real, tested CLI walkthrough), .github/workflows/ci.yml (format+analyze+test on a ubuntu-latest + windows-latest matrix, deliberately including Windows given this project's history of a Windows-only bug), .github/ISSUE_TEMPLATE/ + PULL_REQUEST_TEMPLATE.md, a full README.md rewrite (badges, features, real example output, no more outdated 'untested' disclaimers), and synced docs/{publishing,contributing,license,testing}.html plus project-dashboard.html/dashboard.js to reflect all of the above. What remains and was explicitly NOT done in this phase, per the user's instruction: creating the actual GitHub repository, running `dart pub publish --dry-run` (the user will run this themselves and report the result), the actual `dart pub publish`, and a .github/workflows/release.yml (not requested this round).",
+  "completed_steps": [
+    "Analyzed reference Flutter template (patterns extracted + problems identified)",
+    "Chose CLI name: boltforge",
+    "Designed CLI architecture: bin/, lib/src/{commands,generators,services,template_engine,utils,validators,core}",
+    "Implemented TemplateEngine, NameCase/NameValidator, FileService, ProjectDetector, ProcessService",
+    "Implemented ProjectGenerator (7-step pipeline) and FeatureGenerator (with cancel/overwrite/merge)",
+    "Implemented create / generate / doctor commands + CommandRunner wiring",
+    "Built base architecture template, password auth template, OTP auth template, feature generator template",
+    "Wrote 13 test files (152 test cases) with real filesystem assertions covering every layer",
+    "Built docs/assets/style.css, docs/assets/nav.js, docs/assets/dashboard.js, all 14 docs/*.html pages in Arabic, and project-dashboard.html",
+    "Moved boltforge generate's output to lib/features/<name>/, added automatic DI registration (di_registrar.dart) and post-generation validation (feature_validator.dart) with real presentation/widgets/ output",
+    "First real external verification (dart analyze/dart test on Windows/Git Bash): fixed a missing import for ArgResults, a field-promotion compile error in FakeProcessService, and a Unix-only ('/tmp' + `pwd`) test that couldn't work on native Windows",
+    "Second real external verification: found and fixed a critical packaging bug — PackagePaths assumed the running script always sits one level below the package root, which broke under `dart pub global activate`'s snapshot caching. Rewrote it to use Isolate.resolvePackageUri, made templatesRoot a required parameter resolved by the command layer, added exit code 70, and added test/package_paths_test.dart as a regression test",
+    "User applied and validated 3 of their own fixes (sdk constraint, DioExceptionType.transformTimeout, app_colors.dart import depth in ui/feedback templates) — synced into this codebase and treated as settled",
+    "User confirmed full real-world end-to-end success: dart analyze clean, dart test 152/152, boltforge create (both auth modes) + generate + DI registration + re-run/Cancel/Overwrite/Merge all working from outside the repository, plus manual verification of docs/dashboard in a real browser",
+    "pubspec.yaml: removed unused `recase` dependency (verified via full-codebase search — zero usages), added `topics` (cli, flutter, code-generation, scaffolding, templates), replaced all `your-org` placeholders with `alihossainhabib` without assuming the GitHub repository exists",
+    "Created LICENSE (MIT, Ali Hussein Habib, 2026)",
+    "Created CHANGELOG.md documenting 0.1.0 with only features that actually exist in the codebase",
+    "Created CONTRIBUTING.md, CODE_OF_CONDUCT.md (Contributor Covenant 2.1, contact: alihabibadministrator@gmail.com), SECURITY.md, .gitignore",
+    "Created example/README.md — a real terminal walkthrough matching the user's own confirmed-working command sequence, not an invented scenario",
+    "Created .github/workflows/ci.yml: dart format --set-exit-if-changed, dart analyze, dart test, on a matrix of ubuntu-latest and windows-latest — Windows included deliberately given this project's history of a Windows-specific bug",
+    "Created .github/ISSUE_TEMPLATE/{bug_report.md,feature_request.md,config.yml} and .github/PULL_REQUEST_TEMPLATE.md",
+    "Rewrote README.md: badges (CI, pub version, license), a clear features list, install/usage for create/generate/doctor and both --auth modes, a full real example transcript, and removal of every 'not yet tested'/'not yet complete' disclaimer that is no longer true",
+    "Synced docs/license.html, docs/contributing.html, docs/publishing.html, docs/testing.html to reflect real completed status instead of 'planned for later' language; fixed two remaining stale references (recase mention in license.html, old PackagePaths.templatesRoot/pwd code sample in testing.html)",
+    "Updated project-dashboard.html data (dashboard.js): new detailed Phase 3 checklist item breakdown, RELEASE/GITHUB/PUBDEV checklists updated to real status, TESTING_CHECKLIST changed from 'traced' to 'passed' for all 9 applicable real-world tests, re-verified via the same Node direct-execution harness (91% overall progress, all checks pass, no broken links)"
+  ],
+  "current_architecture": {
+    "cli_package": "boltforge/ (Dart CLI, package:args CommandRunner)",
+    "generated_project_layout": "lib/{app,core/{constants,di,network,router,theme,ui/feedback,widgets},features/{auth,<generated features>}/{cubit,repository,model,presentation/{screen,widgets}}}",
+    "generated_feature_layout": "lib/features/<feature>/{cubit,repository,model,presentation/{screen,widgets}} — unified with the auth flow's location",
+    "di_registration": "Automatic, confirmed working in real-world use. lib/src/services/di_registrar.dart inserts before two marker comments in service_locator.dart",
+    "template_resolution": "Isolate.resolvePackageUri-based (lib/src/core/package_paths.dart), confirmed working via a real `boltforge create` run from outside the repository",
+    "docs_site": "docs/*.html (14 Arabic pages) + docs/assets/{style.css,nav.js} shared design system, manually verified in a real browser",
+    "dashboard": "project-dashboard.html + docs/assets/dashboard.js, tab-based, localStorage key 'boltforge-dashboard-state-v1'",
+    "open_source_files": "LICENSE (MIT), CHANGELOG.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, .gitignore, example/README.md, .github/workflows/ci.yml, .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE.md — all present at repository root"
+  },
+  "known_issues": [
+    "The GitHub repository alihossainhabib/boltforge does not exist yet — pubspec.yaml/README links are prepared for it but nothing was created or assumed to exist.",
+    "`dart pub publish --dry-run` has not been run yet — this is the user's next step, done on their own machine (not by Claude, which has no Dart SDK in this environment).",
+    "Package name availability on pub.dev has not been confirmed.",
+    ".github/workflows/release.yml was not requested this round and does not exist — deferred until after a first real publish, so its shape reflects an actual release process rather than a guess.",
+    "Other tests in test/process_service_test.dart (`sh -c 'exit 7'`, `ls --version`) still rely on Unix-style commands not native to Windows — not reported as failing (they passed as part of the 152), left untouched, but flagged as a latent portability note.",
+    "DiRegistrar relies on two marker comments (not real AST parsing) — a deliberate, documented tradeoff.",
+    "OTP flow assumes a specific backend contract (accountExists field on OTP-request response) — documented but unverified against a real backend other than what was manually tested."
+  ],
+  "decisions": [
+    "Package name: boltforge. GitHub account: alihossainhabib. Repository links use alihossainhabib/boltforge without assuming the repo exists — the user will create it.",
+    "No go_router/auto_route dependency — Navigator 1.0 onGenerateRoute used to minimize the generated project's dependency surface.",
+    "Feature-generated files live at lib/features/<feature>/... — the same location as the auth flow.",
+    "Removed the `recase` dependency from pubspec.yaml — confirmed zero usages anywhere in the codebase; would have only cost pub.dev score points for no benefit.",
+    "Dart SDK constraint in pubspec.yaml is the user's own confirmed value ('>=3.0.0 <4.0.0'), validated against a real Dart 3.2.6 install — left untouched since there is no technical reason found to raise it.",
+    "DI auto-registration uses stable marker comments inserted via string replacement, not a Dart AST parser.",
+    "A missing service_locator.dart or missing marker comments is a warning, not a hard failure of `generate`; a duplicate registration is a hard error (exit code 1).",
+    "CI runs on both ubuntu-latest and windows-latest specifically because this project has real history of a bug that only manifested on Windows — a single-OS CI matrix was judged insufficient given that history.",
+    "example/ contains a terminal walkthrough (README.md) rather than an importable .dart file, since boltforge is a CLI tool with no meaningful library API to demonstrate — the walkthrough mirrors the user's own confirmed-working command sequence rather than an invented one.",
+    "release.yml was deliberately not created this round — not requested, and better designed once an actual release/publish process exists to model rather than guessed at now.",
+    "Package resource resolution (templatesRoot) uses Isolate.resolvePackageUri rather than Platform.script — found via a real end-to-end CLI run outside the test suite, now also confirmed fixed by a second real end-to-end run."
+  ],
+  "version": "0.1.0"
+}

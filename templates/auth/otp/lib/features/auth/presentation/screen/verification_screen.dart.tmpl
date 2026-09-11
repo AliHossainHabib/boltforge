@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/custom_text_field.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../repository/auth_repository.dart';
+import 'create_account_screen.dart';
+
+/// Entry point of the no-password flow:
+/// enter email/phone -> request code -> enter code -> verify ->
+/// existing account: go Home. New account: go to [CreateAccountScreen].
+class VerificationScreen extends StatelessWidget {
+  const VerificationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AuthCubit(sl<AuthRepository>()),
+      child: const _VerificationView(),
+    );
+  }
+}
+
+class _VerificationView extends StatefulWidget {
+  const _VerificationView();
+
+  @override
+  State<_VerificationView> createState() => _VerificationViewState();
+}
+
+class _VerificationViewState extends State<_VerificationView> {
+  final _identifierFormKey = GlobalKey<FormState>();
+  final _identifierController = TextEditingController();
+  final _codeController = TextEditingController();
+  bool _codeStep = false;
+
+  @override
+  void dispose() {
+    _identifierController.dispose();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  void _requestOtp(BuildContext context) {
+    if (!_identifierFormKey.currentState!.validate()) return;
+    context.read<AuthCubit>().requestOtp(identifier: _identifierController.text.trim());
+  }
+
+  void _verifyOtp(BuildContext context) {
+    if (_codeController.text.trim().isEmpty) return;
+    context.read<AuthCubit>().verifyOtp(
+          identifier: _identifierController.text.trim(),
+          code: _codeController.text.trim(),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is OtpSent) {
+            setState(() => _codeStep = true);
+          } else if (state is AuthSuccess) {
+            Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (_) => false);
+          } else if (state is VerifiedNeedsProfile) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => CreateAccountScreen(identifier: _identifierController.text.trim()),
+              ),
+            );
+          } else if (state is AuthFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.error.localizedMessage ?? 'Something went wrong.')),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+                  Text(
+                    _codeStep ? 'Enter the code we sent you' : 'Sign in or create an account',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 24),
+                  if (!_codeStep) ...[
+                    Form(
+                      key: _identifierFormKey,
+                      child: CustomTextField(
+                        controller: _identifierController,
+                        label: 'Email or phone',
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      label: 'Continue',
+                      isLoading: isLoading,
+                      onPressed: () => _requestOtp(context),
+                    ),
+                  ] else ...[
+                    Text('Sent to ${_identifierController.text.trim()}'),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: _codeController,
+                      label: 'Verification code',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      label: 'Verify',
+                      isLoading: isLoading,
+                      onPressed: () => _verifyOtp(context),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _codeStep = false),
+                      child: const Text('Use a different email or phone'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إنشاء مشروع — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الأداة</div>
+    <h1>إنشاء مشروع جديد (create)</h1>
+    <p class="lede">شرح تفصيلي لخط أنابيب <code>ProjectGenerator</code> من أوله لآخره.</p>
+
+    <h2>ماذا تفعل هذه العملية؟</h2>
+    <p>
+      تحوّل مجلدًا فارغًا إلى تطبيق Flutter قابل للتشغيل فورًا، بمعمارية موحّدة ونظام
+      مصادقة كامل، عبر سبع خطوات متسلسلة يُنفّذها
+      <code>ProjectGenerator.generate()</code> في <code>lib/src/generators/project_generator.dart</code>.
+    </p>
+
+    <h2>لماذا سبع خطوات منفصلة بدل خطوة واحدة؟</h2>
+    <p>
+      لأن كل خطوة قد تفشل لسبب مختلف تمامًا (Flutter غير مثبَّت، مشكلة شبكة عند
+      <code>pub add</code>، خطأ في القالب نفسه، مشكلة تحليل حقيقية في الكود المولَّد).
+      فصلها يعني أن رسالة الخطأ التي تصل للمستخدم دقيقة ومحدَّدة، بدل "حدث خطأ ما".
+    </p>
+
+    <h2>الخطوات السبع بالتفصيل</h2>
+    <table>
+      <tr><th>#</th><th>الخطوة</th><th>الأمر الفعلي</th><th>يتوقف عند الفشل؟</th></tr>
+      <tr><td>1</td><td>إنشاء مشروع Flutter</td><td><code>flutter create --org &lt;org&gt; --project-name &lt;name&gt; &lt;name&gt;</code></td><td>نعم</td></tr>
+      <tr><td>2</td><td>إضافة التبعيات</td><td><code>flutter pub add flutter_bloc bloc dio get_it shared_preferences</code></td><td>نعم</td></tr>
+      <tr><td>3</td><td>تطبيق المعمارية الأساسية</td><td>نسخ/توليد <code>templates/base/</code> عبر <code>FileService</code></td><td>نعم</td></tr>
+      <tr><td>4</td><td>تطبيق نظام المصادقة</td><td>نسخ/توليد <code>templates/auth/&lt;password|otp&gt;/</code></td><td>نعم</td></tr>
+      <tr><td>5</td><td>تثبيت التبعيات</td><td><code>flutter pub get</code></td><td>نعم</td></tr>
+      <tr><td>6</td><td>تحليل الكود</td><td><code>flutter analyze</code></td><td>نعم — هذه بوابة التحقق الرئيسية</td></tr>
+      <tr><td>7</td><td>تشغيل الاختبارات</td><td><code>flutter test</code></td><td>لا (تحذير فقط)</td></tr>
+    </table>
+
+    <div class="callout tip">
+      <div class="callout-title">💡 لماذا لا تتوقف الخطوة 7 عند الفشل؟</div>
+      <p style="margin:0">
+        لأن اختبار وحدة فاشل لا يعني أن المشروع "مكسور" بنفس معنى فشل <code>analyze</code>
+        (الذي يعني كودًا لا يُترجَم). الأداة تطبع تحذيرًا وتترك القرار للمطوّر.
+      </p>
+    </div>
+
+    <h2>الملفات المشارِكة بالضبط</h2>
+    <ul>
+      <li><code>lib/src/commands/create_command.dart</code> — يستقبل args ويستدعي المُولِّد.</li>
+      <li><code>lib/src/generators/project_generator.dart</code> — منطق الخطوات السبع.</li>
+      <li><code>lib/src/services/process_service.dart</code> — تنفيذ أوامر flutter الفعلية.</li>
+      <li><code>lib/src/services/file_service.dart</code> — تطبيق القوالب على القرص.</li>
+      <li><code>lib/src/template_engine/template_context.dart</code> — دالة
+        <code>TemplateContext.forProject(...)</code> التي تبني المتغيرات والأعلام
+        (<code>authPassword</code> / <code>authOtp</code>).</li>
+    </ul>
+
+    <h2>مثال كود كامل: كيف تُبنى القيم المُمرَّرة للقالب</h2>
+    <div class="filename-tag">lib/src/template_engine/template_context.dart</div>
+    <pre><code>factory TemplateContext.forProject({
+  required String projectName,
+  required String orgIdentifier,
+  required bool usesPassword,
+}) {
+  final n = NameCase.from(projectName);
+  return TemplateContext(
+    variables: {
+      'projectName': n.snake,
+      'projectNamePascal': n.pascal,
+      'projectNameCamel': n.camel,
+      'projectNameKebab': n.kebab,
+      'projectNameTitle': n.title,
+      'orgIdentifier': orgIdentifier,
+    },
+    flags: {
+      'authPassword': usesPassword,
+      'authOtp': !usesPassword,
+    },
+  );
+}</code></pre>
+    <p>
+      مثال: الاسم <code>my_cool_app</code> يُنتج <code>projectNamePascal = MyCoolApp</code>
+      و<code>projectNameTitle = My Cool App</code> (يُستخدم مباشرة كعنوان في
+      <code>MaterialApp(title: '{{projectNameTitle}}')</code>).
+    </p>
+
+    <h2>الأمر والناتج الكامل</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code>boltforge create shop_app --org=com.mycompany --auth=otp</code></pre>
+    <pre><code>boltforge — creating "shop_app"
+
+  → Creating Flutter project "shop_app"
+  ✔ Flutter project scaffolded
+  → Adding required dependencies
+  ✔ Dependencies added to pubspec.yaml
+  → Applying base architecture
+  ✔ Base architecture applied (core/ layer)
+  → Configuring authentication (otp)
+  ✔ Authentication flow generated (otp)
+  → Installing dependencies
+  ✔ Dependencies installed
+  → Validating generated code (flutter analyze)
+  ✔ No analysis issues found
+  → Running tests
+  ✔ Tests passed
+
+Project created successfully!
+cd shop_app &amp;&amp; flutter run</code></pre>
+
+    <h2>كيف تُعدّل قائمة التبعيات المُضافة تلقائيًا؟</h2>
+    <div class="filename-tag">lib/src/generators/project_generator.dart</div>
+    <pre><code>const requiredPackages = [
+  'flutter_bloc',
+  'bloc',
+  'dio',
+  'get_it',
+  'shared_preferences',
+];</code></pre>
+    <p>
+      عدّل هذه القائمة مباشرة. لاحظ أن الإصدارات <strong>لا</strong> تُحدَّد يدويًا هنا
+      عمدًا — <code>flutter pub add</code> يختار إصدارًا متوافقًا مع SDK المستخدم
+      الفعلي، بدل تجميد إصدار قد يصبح قديمًا مع الوقت.
+    </p>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>السبب المحتمل</th></tr>
+      <tr><td>تتوقف العملية عند "Adding required dependencies"</td><td>لا يوجد اتصال إنترنت، أو تعارض إصدارات في pub.dev.</td></tr>
+      <tr><td>تتوقف عند "flutter analyze"</td><td>عادة خطأ حقيقي في أحد ملفات <code>templates/</code> — راجع تفاصيل الخطأ المطبوعة كاملة.</td></tr>
+      <tr><td>المشروع يُنشأ لكن بدون شاشة تسجيل دخول</td><td>تحقق من قيمة <code>--auth</code> الممرَّرة، أو من إجابتك في السؤال التفاعلي.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li><code>boltforge create test_app</code> ينتج مشروعًا يمر بـ <code>flutter analyze</code> بدون أي مشكلة.</li>
+      <li>عند فشل أي خطوة من 1 إلى 6، لا تُطبع رسالة "Project created successfully!" أبدًا.</li>
+      <li>القيم <code>authPassword</code> و<code>authOtp</code> متعاكستان دائمًا (لا يمكن أن تكونا true معًا أو false معًا).</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="cli.html"><span class="dir">السابق</span>أوامر الـ CLI</a>
+      <a class="next" href="authentication.html"><span class="dir">التالي</span>أنظمة تسجيل الدخول</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

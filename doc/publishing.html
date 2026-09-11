@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>النشر على pub.dev — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">النشر</div>
+    <h1>النشر على pub.dev</h1>
+    <p class="lede">المتطلبات مكتملة الآن — النشر الفعلي بانتظار محاكاة <code>--dry-run</code> والقرار النهائي من المطوّر.</p>
+
+    <div class="callout tip">
+      <div class="callout-title">✔ Phase 3 مكتملة — لم يبقَ سوى النشر الفعلي</div>
+      <p style="margin:0">
+        <code>LICENSE</code>, <code>CHANGELOG.md</code>, <code>CONTRIBUTING.md</code>,
+        <code>CODE_OF_CONDUCT.md</code>, <code>SECURITY.md</code>, و<code>.gitignore</code>
+        كلها موجودة الآن. <code>dart analyze</code> نظيف و<code>dart test</code> ناجح
+        بالكامل فعليًا (تحقّق حقيقي على جهاز المطوّر، وليس فقط تتبعًا يدويًا). ما تبقّى:
+        تشغيل <code>dart pub publish --dry-run</code> فعليًا وتحليل نتيجته —
+        راجع <code>project-dashboard.html</code> لحالة كل عنصر تحديدًا.
+      </p>
+    </div>
+
+    <h2>ماذا يعني "النشر" هنا؟</h2>
+    <p>
+      رفع حزمة boltforge إلى <a href="https://pub.dev" target="_blank">pub.dev</a> بحيث
+      يستطيع أي مطوّر تثبيتها عالميًا بأمر واحد:
+    </p>
+    <pre><code>dart pub global activate boltforge</code></pre>
+
+    <h2>لماذا لم يحدث النشر الفعلي بعد؟</h2>
+    <p>
+      لأن النشر على pub.dev شبه نهائي (لا يمكن حذف إصدار منشور، فقط "تقاعده"
+      retract). القرار الفني (تحقّق حقيقي من الاختبارات، ترخيص واضح، توثيق كامل)
+      اكتمل بالفعل — ما تبقّى هو تشغيل <code>--dry-run</code> فعليًا وقرار نهائي
+      واعٍ من صاحب المشروع بالضغط على زر لا رجعة فيه سهلة.
+    </p>
+
+    <h2>المتطلبات قبل النشر (checklist)</h2>
+    <ul>
+      <li>✔ تشغيل حقيقي لـ <code>dart format . &amp;&amp; dart analyze &amp;&amp; dart test</code> بدون أي فشل — تم فعليًا.</li>
+      <li>وجود <code>LICENSE</code> فعلي في جذر المشروع — ✔ تم (MIT).</li>
+      <li>وجود <code>CHANGELOG.md</code> يوثّق أول إصدار (0.1.0) — ✔ تم.</li>
+      <li><code>pubspec.yaml</code> يحتوي <code>homepage</code>/<code>repository</code> تشير إلى
+        <code>github.com/alihossainhabib/boltforge</code> — ✔ تم كتابتها؛ يبقى إنشاء
+        المستودع فعليًا على GitHub بهذا الاسم (لم يُفترض وجوده، فقط جُهِّزت الروابط له).</li>
+      <li>التحقق من توفّر الاسم <code>boltforge</code> فعليًا على pub.dev — لم يُتحقَّق منه بعد،
+        و<code>dart pub publish --dry-run</code> سيكشف هذا مباشرة إن كان الاسم مأخوذًا.</li>
+      <li>تجربة محاكاة النشر (<code>--dry-run</code>) قبل أي رفع فعلي — الخطوة التالية المباشرة.</li>
+    </ul>
+
+    <h2>الأمر التالي بالضبط</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code># محاكاة أولًا — لا يرفع شيئًا فعليًا، فقط يتحقق من كل المتطلبات
+dart pub publish --dry-run
+
+# فقط بعد مراجعة نتيجة الأمر أعلاه والتأكد التام:
+dart pub publish</code></pre>
+
+    <h2>كيف تتحقق من توفر الاسم بنفسك</h2>
+    <p>
+      ابحث يدويًا عبر <code>https://pub.dev/packages/boltforge</code> — إن ظهرت صفحة
+      حزمة موجودة فعلًا، يلزم اختيار اسم بديل وتحديث <code>pubspec.yaml</code> و<code>bin/</code>
+      (اسم الحزمة يظهر في <code>executables:</code> ضمن <code>pubspec.yaml</code>)
+      وكل الوثائق المرجعية له.
+    </p>
+
+    <h2>ماذا يتحقق منه <code>--dry-run</code> فعليًا؟</h2>
+    <ul>
+      <li>صحة بنية <code>pubspec.yaml</code> (الحقول الإلزامية: name, description, version, environment).</li>
+      <li>وجود ملف LICENSE.</li>
+      <li>حجم الحزمة (لا يتجاوز الحد الأقصى المسموح).</li>
+      <li>عدم وجود ملفات حساسة (مثل مفاتيح API) عبر آلية <code>false_secrets</code> في <code>pubspec.yaml</code>.</li>
+    </ul>
+    <div class="callout tip">
+      <div class="callout-title">💡 ملاحظة على pubspec.yaml الحالي</div>
+      <p style="margin:0">
+        الحقل <code>false_secrets: - "/templates/**"</code> موجود مسبقًا في
+        <code>pubspec.yaml</code> ليخبر أداة تحليل pub.dev أن محتوى مجلد
+        <code>templates/</code> (رغم احتوائه نصوصًا تبدو كأكواد حساسة أحيانًا) ليس
+        سرًّا فعليًا، بل قوالب توليد عادية.
+      </p>
+    </div>
+
+    <h2>أخطاء شائعة عند النشر</h2>
+    <table>
+      <tr><th>الخطأ</th><th>السبب المحتمل</th></tr>
+      <tr><td>"Package validation found the following potential issue: ..."</td><td>غالبًا وصف الحزمة قصير جدًا، أو حقل مفقود في pubspec.yaml.</td></tr>
+      <tr><td>رفض بسبب حجم الحزمة</td><td>تأكد أن <code>templates/</code> لا يحتوي ملفات ثنائية كبيرة غير ضرورية.</td></tr>
+      <tr><td>"Package name already exists"</td><td>الاسم <code>boltforge</code> مأخوذ فعليًا — يتطلب اسمًا بديلًا وتحديث كل مكان يذكره.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li><code>dart pub publish --dry-run</code> يمر بدون أي تحذير أو خطأ — لم يُختبَر فعليًا بعد، هذا التالي بالضبط.</li>
+      <li>اسم الحزمة مؤكَّد التوفر فعليًا على pub.dev قبل أول نشر.</li>
+      <li>يوجد وسم Git (tag) مطابق لرقم الإصدار في pubspec.yaml وقت النشر.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="troubleshooting.html"><span class="dir">السابق</span>استكشاف الأخطاء</a>
+      <a class="next" href="contributing.html"><span class="dir">التالي</span>المساهمة في المشروع</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

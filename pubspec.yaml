@@ -1,0 +1,36 @@
+name: boltforge
+description: >
+  A CLI that scaffolds production-ready Flutter projects (Cubit + Repository
+  + GetIt architecture) and generates fully-wired features on demand.
+version: 0.1.0
+homepage: https://github.com/alihossainhabib/boltforge
+repository: https://github.com/alihossainhabib/boltforge
+issue_tracker: https://github.com/alihossainhabib/boltforge/issues
+documentation: https://alihossainhabib.github.io/boltforge/
+
+topics:
+  - cli
+  - flutter
+  - code-generation
+  - scaffolding
+  - templates
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+executables:
+  boltforge: boltforge
+
+dependencies:
+  args: ^2.5.0
+  path: ^1.9.0
+  yaml: ^3.1.2
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0
+
+# Files bundled with the published package so `boltforge create` can copy
+# them onto disk even when installed via `dart pub global activate`.
+false_secrets:
+  - "/templates/**"

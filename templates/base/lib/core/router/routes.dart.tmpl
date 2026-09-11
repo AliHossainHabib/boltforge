@@ -1,0 +1,19 @@
+/// Named route constants. Auth routes are added by the chosen
+/// authentication template; feature generation appends its own route
+/// constant here as a comment reminder in the generated screen file.
+class Routes {
+  Routes._();
+
+  static const String splash = '/';
+  static const String home = '/home';
+
+{{#if authPassword}}
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+{{/if}}
+{{#if authOtp}}
+  static const String verify = '/verify';
+  static const String createAccount = '/create-account';
+{{/if}}
+}

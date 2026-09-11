@@ -1,0 +1,14 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:{{projectName}}/app/splash_screen.dart';
+
+void main() {
+  testWidgets('SplashScreen renders a loading indicator', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SplashScreen()),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+}

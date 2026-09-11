@@ -1,0 +1,75 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+/// Retries idempotent GET requests on transient failures (timeouts, 5xx)
+/// with exponential backoff and jitter.
+class RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final int maxAttempts;
+  final Duration baseDelay;
+  final Random _rand = Random();
+
+  RetryInterceptor(
+    this.dio, {
+    this.maxAttempts = 3,
+    this.baseDelay = const Duration(milliseconds: 500),
+  });
+
+  static const _attemptKey = 'retry_attempt';
+  static const _retriableMethods = {'GET', 'HEAD', 'OPTIONS'};
+
+  bool _shouldRetry(DioException err) {
+    final method = err.requestOptions.method.toUpperCase();
+    if (!_retriableMethods.contains(method)) return false;
+
+    switch (err.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+        return true;
+      case DioExceptionType.badResponse:
+        final status = err.response?.statusCode ?? 0;
+        return status >= 500 && status < 600;
+      default:
+        return false;
+    }
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    if (!_shouldRetry(err)) {
+      handler.next(err);
+      return;
+    }
+
+    final attempt = (err.requestOptions.extra[_attemptKey] as int? ?? 0) + 1;
+    if (attempt > maxAttempts) {
+      handler.next(err);
+      return;
+    }
+
+    final backoff = baseDelay * pow(2, attempt - 1).toInt();
+    final jitter = Duration(milliseconds: _rand.nextInt(150));
+    if (kDebugMode) {
+      debugPrint(
+        '[Retry] attempt $attempt/$maxAttempts — ${err.requestOptions.path}',
+      );
+    }
+    await Future.delayed(backoff + jitter);
+
+    try {
+      final newOptions = err.requestOptions..extra[_attemptKey] = attempt;
+      final response = await dio.fetch<dynamic>(newOptions);
+      handler.resolve(response);
+    } on DioException catch (e) {
+      handler.next(e);
+    }
+  }
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الإعدادات — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">التخصيص</div>
+    <h1>الإعدادات (Configuration)</h1>
+    <p class="lede">
+      لا يوجد ملف إعدادات مركزي (مثل <code>boltforge.yaml</code>) في هذا الإصدار —
+      هذه الصفحة توضّح أين تُضبط كل قيمة قابلة للتخصيص فعليًا، ولماذا لم نُضِف ملف
+      إعدادات بعد.
+    </p>
+
+    <h2>لماذا لا يوجد ملف <code>boltforge.yaml</code> حتى الآن؟</h2>
+    <p>
+      لأن كل خيار حالي (نمط المصادقة، معرّف المؤسسة، تخطي التحقق) يُمرَّر بوضوح
+      كعلامة سطر أوامر (<code>--auth</code>, <code>--org</code>, <code>--skip-validation</code>)،
+      وهذا كافٍ للاستخدام الحالي. ملف إعدادات مركزي منطقي فقط عندما يتكرر تمرير
+      نفس القيم في كل مرة عبر فريق كامل — وهذا قرار مؤجَّل عمدًا لمرحلة لاحقة
+      (راجع <code>PROJECT_STATE.json</code> → known_issues).
+    </p>
+
+    <h2>أين تُضبط كل قيمة فعليًا الآن؟</h2>
+    <table>
+      <tr><th>الإعداد</th><th>أين يُضبط</th></tr>
+      <tr><td>نمط المصادقة</td><td>علامة <code>--auth</code> عند <code>create</code>، أو السؤال التفاعلي</td></tr>
+      <tr><td>معرّف المؤسسة (Bundle ID)</td><td>علامة <code>--org</code> (افتراضيًا <code>com.example</code>)</td></tr>
+      <tr><td>عنوان الـ Backend</td><td><code>lib/core/constants/api_constants.dart</code> بعد التوليد — الحقل <code>baseUrl</code> فارغ عمدًا</td></tr>
+      <tr><td>نقاط النهاية (Endpoints)</td><td>بقية ثوابت <code>ApiConstants</code> في نفس الملف</td></tr>
+      <tr><td>الحزم المُضافة تلقائيًا</td><td>قائمة <code>requiredPackages</code> في <code>lib/src/generators/project_generator.dart</code> — على مستوى الأداة نفسها، وليس لكل مشروع</td></tr>
+      <tr><td>الثيم/الألوان</td><td><code>lib/core/theme/app_colors.dart</code> و<code>app_theme.dart</code> بعد التوليد</td></tr>
+    </table>
+
+    <h2>مثال كامل: ربط الـ Backend بعد التوليد</h2>
+    <div class="filename-tag">lib/core/constants/api_constants.dart (بعد create)</div>
+    <pre><code>class ApiConstants {
+  ApiConstants._();
+
+  static const String baseUrl = ''; // ← ضع رابط الخادم هنا
+
+  static const String login = '/auth/login';
+  static const String register = '/auth/register';
+  // ...
+}</code></pre>
+    <p>
+      هذا هو الملف الوحيد الذي يحتاج تعديلًا يدويًا إجباريًا بعد كل <code>create</code>.
+      كل من <code>DioClient</code> وكل Repository يعتمدان على هذه القيمة فقط، لذا
+      تغييرها هنا يكفي لربط أي Backend (Node.js, Firebase, Laravel, Django, أو أي REST API).
+    </p>
+
+    <h2>كيف تتفاعل هذه القيم مع باقي الكود؟</h2>
+    <pre><code>DioClient.instance.init()
+  → Dio(BaseOptions(baseUrl: ApiConstants.baseUrl, ...))
+  → AuthRepository._dio = DioClient.instance.dio
+  → AuthRepository.login() ينادي _dio.post(ApiConstants.login, ...)</code></pre>
+
+    <h2>كيف تُضيف ملف إعدادات مركزي بنفسك (اقتراح للتوسعة المستقبلية)</h2>
+    <ol>
+      <li>أضف حزمة <code>package:yaml</code> (موجودة أصلًا كتبعية للأداة نفسها).</li>
+      <li>اقرأ ملف <code>boltforge.yaml</code> اختياري من مجلد العمل الحالي في
+        <code>CreateCommand.run()</code> قبل بناء <code>TemplateContext</code>.</li>
+      <li>اجعل قيم مثل <code>--org</code> تُقرأ من الملف كافتراضي، مع بقاء علامة سطر
+        الأوامر أعلى أولوية دائمًا (override).</li>
+      <li>وثّق المفاتيح المدعومة في هذه الصفحة بالذات، وأضف اختبارًا في
+        <code>test/cli_commands_test.dart</code> يتحقق من دمج الأولويات (CLI flag يتفوّق على ملف الإعداد).</li>
+    </ol>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>السبب</th></tr>
+      <tr><td>طلبات الشبكة تفشل بصمت أو بخطأ اتصال غامض</td><td>نسيان ملء <code>ApiConstants.baseUrl</code> بعد إنشاء المشروع — القيمة الافتراضية فارغة عمدًا.</td></tr>
+      <tr><td>تغيير الثيم لا يظهر</td><td>تأكد من تعديل <code>AppTheme.light()</code>/<code>dark()</code> وليس <code>AppColors</code> فقط إن كنت تستخدم <code>ThemeData</code> مخصص لا يعتمد على <code>colorSchemeSeed</code>.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li>مشروع جديد يعمل بدون أي طلب شبكة فاشل بسبب baseUrl فارغ (يظهر خطأ واضح مُعالَج عبر <code>ApiError</code>، لا انهيار).</li>
+      <li>تغيير <code>ApiConstants.baseUrl</code> فقط كافٍ لربط backend جديد كليًا، بدون لمس أي ملف Repository.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="templates.html"><span class="dir">السابق</span>نظام القوالب</a>
+      <a class="next" href="testing.html"><span class="dir">التالي</span>الاختبارات</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

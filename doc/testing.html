@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الاختبارات — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الجودة</div>
+    <h1>الاختبارات (Testing)</h1>
+    <p class="lede">ما المُختبَر فعليًا — تم تأكيده الآن بتشغيل حقيقي، وليس تتبعًا يدويًا فقط.</p>
+
+    <div class="callout tip">
+      <div class="callout-title">✔ تم التشغيل الفعلي — 152/152 اختبارًا ناجحًا</div>
+      <p style="margin:0">
+        تم تشغيل <code>dart analyze</code> فعليًا (نظيف، بدون أي خطأ أو تحذير)
+        و<code>dart test</code> فعليًا (152 اختبارًا، كلها ناجحة) على جهاز حقيقي
+        (Windows) فيه Dart وFlutter مثبَّتان. هذا تحقّق حقيقي بالتنفيذ، وليس تتبعًا
+        يدويًا للكود كما كان الحال في المراحل الأولى من بناء هذا المشروع. أثناء
+        الوصول لهذه النتيجة، اكتُشفت وأُصلحت عدة مشاكل حقيقية لم تكن لتظهر بالمراجعة
+        اليدوية وحدها — راجع <code>CHANGELOG.md</code> و<code>PROJECT_STATE.json</code>
+        للتفاصيل الكاملة لكل إصلاح.
+      </p>
+    </div>
+
+    <h2>الأمر المستخدَم للتحقق (شغّله بنفسك عند أي تعديل)</h2>
+    <pre><code>cd boltforge
+dart pub get
+dart format .
+dart analyze
+dart test</code></pre>
+
+    <h2>ماذا تفعل مجموعة الاختبارات؟</h2>
+    <p>
+      13 ملف اختبار في <code>test/</code> يغطي كل طبقة في الأداة، مع تركيز صريح على
+      التحقق من <strong>محتوى ملفات حقيقية</strong> (أسماء أصناف، مسارات استيراد،
+      بنية مجلدات) بدل اختبارات سطحية تتحقق فقط من عدم رمي استثناء.
+    </p>
+
+    <h2>لماذا هذا مهم تحديدًا لأداة توليد كود؟</h2>
+    <p>
+      أداة مثل boltforge لا "تُرجع قيمة" يمكن فحصها بسهولة — نتيجتها الحقيقية هي
+      ملفات على القرص. اختبار سطحي ("الدالة لم تنهَر") لا يكشف خطأ مثل استيراد
+      بمسار خاطئ، أو اسم صنف بحرف صغير بدل كبير. لذلك كل اختبار توليد هنا يقرأ
+      الملف الناتج فعليًا من القرص (<code>File(...).readAsStringSync()</code>) ويتحقق
+      من محتواه حرفيًا.
+    </p>
+
+    <h2>خريطة ملفات الاختبار</h2>
+    <table>
+      <tr><th>الملف</th><th>يغطي</th></tr>
+      <tr><td><code>name_case_test.dart</code></td><td><code>NameCase</code>: كل التحويلات بين الصيغ</td></tr>
+      <tr><td><code>name_validator_test.dart</code></td><td><code>NameValidator</code>: أسماء صالحة/غير صالحة، كلمات محجوزة</td></tr>
+      <tr><td><code>template_engine_test.dart</code></td><td><code>TemplateEngine</code>: متغيرات، شروط، أسماء ملفات</td></tr>
+      <tr><td><code>file_service_test.dart</code></td><td><code>FileService</code>: overwrite/merge/cancel على مجلدات مؤقتة حقيقية</td></tr>
+      <tr><td><code>project_detector_test.dart</code></td><td><code>ProjectDetector</code>: pubspec.yaml صالح/غير صالح</td></tr>
+      <tr><td><code>process_service_test.dart</code></td><td><code>ProcessService</code>: تشغيل عمليات حقيقية (echo, sh)، والتحقق من احترام working directory عبر تشغيل <code>dart</code> نفسها (بدل <code>pwd</code> غير المتاحة أصلًا على Windows)</td></tr>
+      <tr><td><code>feature_generator_test.dart</code></td><td><code>FeatureGenerator</code>: بنية الملفات تحت <code>lib/features/</code>، الأصناف، الاستيرادات، التكرار، تكامل DI والتحقق</td></tr>
+      <tr><td><code>di_registrar_test.dart</code></td><td><code>DiRegistrar</code>: إدراج آمن، عدم تكرار الاستيراد/التسجيل، ملف مفقود أو معدَّل يدويًا</td></tr>
+      <tr><td><code>package_paths_test.dart</code></td><td><code>PackagePaths.resolveTemplatesRoot</code>: يتحقق فعليًا أنه يجد <code>templates/</code> الحقيقي — اختبار ارتداد (regression) لخطأ حزم حقيقي انكشف بتشغيل الأداة فعليًا خارج المستودع</td></tr>
+      <tr><td><code>auth_generation_test.dart</code></td><td>قالبا Password وOTP كاملين، شاشة بشاشة</td></tr>
+      <tr><td><code>project_generator_test.dart</code></td><td><code>ProjectGenerator</code>: ترتيب الخطوات السبع، التوقف عند الفشل</td></tr>
+      <tr><td><code>cli_commands_test.dart</code></td><td><code>CreateCommand</code>/<code>GenerateCommand</code>: رموز الخروج، المدخلات غير الصالحة</td></tr>
+      <tr><td><code>doctor_command_test.dart</code></td><td><code>DoctorCommand</code>: نجاح/فشل حسب توفر Flutter/Dart</td></tr>
+    </table>
+
+    <h2>مثال حقيقي: اختبار يتحقق من محتوى ملف مُولَّد</h2>
+    <div class="filename-tag">test/feature_generator_test.dart</div>
+    <pre><code>test('generated cubit imports its own state, model, and repository files correctly', () {
+  final cubit = File(p.join(libDir.path, 'offer', 'cubit', 'offer_cubit.dart'))
+      .readAsStringSync();
+  expect(cubit, contains("part 'offer_state.dart';"));
+  expect(cubit, contains("import '../model/offer_model.dart';"));
+  expect(cubit, contains("import '../repository/offer_repository.dart';"));
+});</code></pre>
+    <p>
+      هذا الاختبار كان سيكشف فورًا لو أن أحد مسارات الاستيراد النسبية في القالب
+      كان خاطئًا بعمق واحد فقط — وهو خطأ شائع جدًا عند تعديل بنية المجلدات.
+    </p>
+
+    <h2>كيف تعمل الاختبارات بدون Flutter مثبَّت؟</h2>
+    <p>
+      عبر حقن التبعيات: <code>FeatureGenerator</code> و<code>ProjectGenerator</code>
+      يقبلان <code>templatesRoot</code> اختياريًا (بدل الاعتماد فقط على
+      <code>Platform.script</code>)، و<code>ProjectGenerator</code> يقبل
+      <code>ProcessService</code> قابلًا للاستبدال بـ <code>FakeProcessService</code>
+      (في <code>test/support/fake_process_service.dart</code>) — بديل حقيقي يسجّل
+      كل استدعاء ويُرجع نتائج قابلة للتحكّم دون تشغيل أي عملية فعلية.
+    </p>
+    <div class="filename-tag">test/support/fake_process_service.dart</div>
+    <pre><code>class FakeProcessService implements ProcessService {
+  final List&lt;RecordedCall&gt; calls = [];
+  // ...
+  @override
+  Future&lt;ProcessOutcome&gt; run(String executable, List&lt;String&gt; args, {String? workingDirectory}) async {
+    calls.add(RecordedCall(executable, args, workingDirectory));
+    final onRun = _onRun;
+    return onRun != null ? onRun(executable, args) : _defaultOutcome;
+  }
+}</code></pre>
+
+    <h2>بُنية اختبار توليد نموذجية (نمط متكرر في كل اختبارات التوليد)</h2>
+    <pre><code>setUp(() {
+  tempDir = Directory.systemTemp.createTempSync('boltforge_..._test_');
+});
+
+tearDown(() {
+  if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+});</code></pre>
+    <p>كل اختبار يعمل على مجلد مؤقت معزول تمامًا، ويُحذف بعد الاختبار — لا أثر يبقى على القرص.</p>
+
+    <h2>كيف تُضيف اختبارًا جديدًا؟</h2>
+    <ol>
+      <li>حدّد أي طبقة تختبرها (Service? Generator? Command?) واختر الملف المطابق أو أنشئ ملفًا جديدًا بنفس الاسم + <code>_test.dart</code>.</li>
+      <li>إن كان الاختبار يحتاج نظام ملفات، استخدم <code>Directory.systemTemp.createTempSync(...)</code> في <code>setUp</code> واحذفه في <code>tearDown</code>.</li>
+      <li>إن كان يحتاج عملية خارجية (flutter/dart)، استخدم <code>FakeProcessService</code> بدل الحقيقي.</li>
+      <li>اكتب الـ assertion على محتوى فعلي (ملف، نص، بنية) وليس فقط "لم يرمِ استثناء".</li>
+      <li>شغّل <code>dart test test/&lt;file&gt;.dart</code> للملف تحديدًا أثناء التطوير.</li>
+    </ol>
+
+    <h2>أخطاء شائعة عند كتابة الاختبارات هنا</h2>
+    <table>
+      <tr><th>الخطأ</th><th>لماذا هو خطأ</th></tr>
+      <tr><td>الاعتماد على <code>PackagePaths.resolveTemplatesRoot()</code> الحقيقي داخل اختبار بدل حقن مسار معروف</td><td>يعمل صحيحًا الآن فعليًا تحت <code>dart test</code> (راجع <code>package_paths_test.dart</code>)، لكن الأسرع والأبسط لبقية الاختبارات هو حقن <code>Directory.current</code>/<code>templates</code> مباشرة بدل انتظار عملية async غير ضرورية.</td></tr>
+      <tr><td>اختبار يترك ملفات فعلية بعد انتهائه</td><td>يُسبب تلوّثًا بين تشغيلات الاختبار المتتالية — تأكد من <code>tearDown</code> دائمًا.</td></tr>
+      <tr><td>اختبار يعتمد على وجود Flutter الحقيقي مثبَّتًا</td><td>يجعل الاختبار غير قابل للتشغيل على أي جهاز CI بدون Flutter — استخدم <code>FakeProcessService</code>.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li><code>dart test</code> يُنفَّذ بدون أي فشل على جهاز فيه Dart SDK فقط (بدون Flutter مثبَّت حتى). ✔ مؤكَّد فعليًا: 152/152 اختبارًا ناجحًا.</li>
+      <li>كل اختبار يُنظّف كل ملف مؤقت أنشأه.</li>
+      <li>لا يوجد أي اختبار يعتمد على ترتيب تشغيل اختبار آخر قبله.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="configuration.html"><span class="dir">السابق</span>الإعدادات</a>
+      <a class="next" href="troubleshooting.html"><span class="dir">التالي</span>استكشاف الأخطاء</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+part of 'auth_cubit.dart';
+
+@immutable
+sealed class AuthState {
+  const AuthState();
+}
+
+class AuthInitial extends AuthState {
+  const AuthInitial();
+}
+
+class AuthLoading extends AuthState {
+  const AuthLoading();
+}
+
+/// Code was sent; [accountExists] tells the screen whether a successful
+/// verification should go straight to Home or on to profile completion.
+class OtpSent extends AuthState {
+  final bool accountExists;
+  const OtpSent(this.accountExists);
+}
+
+class AuthSuccess extends AuthState {
+  final UserModel user;
+  const AuthSuccess(this.user);
+}
+
+/// Code verified for a new account — no profile yet. The screen should
+/// navigate to account creation.
+class VerifiedNeedsProfile extends AuthState {
+  const VerifiedNeedsProfile();
+}
+
+class AuthFailure extends AuthState {
+  final ApiError error;
+  const AuthFailure(this.error);
+}

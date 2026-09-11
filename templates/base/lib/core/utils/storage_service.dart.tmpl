@@ -1,0 +1,51 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../constants/app_constants.dart';
+
+/// Thin wrapper over [SharedPreferences] for auth token + simple JSON
+/// caching. Swap this out for `flutter_secure_storage` if the token needs
+/// to live outside plain prefs — every call site goes through here, so
+/// that's a one-file change.
+class StorageService {
+  StorageService._();
+
+  static SharedPreferences? _prefs;
+
+  static Future<void> init() async {
+    _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  static SharedPreferences get _instance {
+    final prefs = _prefs;
+    if (prefs == null) {
+      throw StateError(
+        'StorageService.init() must be called (in bootstrap) before use.',
+      );
+    }
+    return prefs;
+  }
+
+  static Future<void> setToken(String token) =>
+      _instance.setString(AppConstants.accessTokenKey, token);
+
+  static Future<String?> getToken() async =>
+      _instance.getString(AppConstants.accessTokenKey);
+
+  static Future<void> clearAuth() async {
+    await _instance.remove(AppConstants.accessTokenKey);
+    await _instance.remove(AppConstants.userKey);
+  }
+
+  static Future<void> cacheJson(String key, Map<String, dynamic>? value) {
+    if (value == null) return _instance.remove(key);
+    return _instance.setString(key, jsonEncode(value));
+  }
+
+  static Map<String, dynamic>? getCachedJson(String key) {
+    final raw = _instance.getString(key);
+    if (raw == null) return null;
+    return jsonDecode(raw) as Map<String, dynamic>;
+  }
+}

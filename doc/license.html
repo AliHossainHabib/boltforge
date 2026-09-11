@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الترخيص — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">النشر</div>
+    <h1>الترخيص (License)</h1>
+    <p class="lede">أي ترخيص يناسب هذا المشروع، ولماذا — وقد طُبِّق فعليًا الآن.</p>
+
+    <div class="callout tip">
+      <div class="callout-title">✔ تم التطبيق فعليًا</div>
+      <p style="margin:0">
+        ملف <code>LICENSE</code> موجود الآن في جذر المستودع بنص MIT كاملًا،
+        بحقوق نشر باسم <strong>Ali Hussein Habib</strong> لعام 2026 — بالضبط
+        التوصية الموضَّحة في بقية هذه الصفحة.
+      </p>
+    </div>
+
+    <h2>لماذا يهم اختيار الترخيص؟</h2>
+    <p>
+      <code>dart pub publish</code> يتطلب ملف <code>LICENSE</code> في جذر الحزمة —
+      بدونه لا يمكن النشر على pub.dev إطلاقًا. كما أن الترخيص يحدد بوضوح: هل يمكن
+      لشركة استخدام الأداة في مشروع تجاري مغلق المصدر؟ هل يمكنها تعديلها وإعادة
+      توزيعها؟ هل عليها نشر أي تعديل تجريه؟
+    </p>
+
+    <h2>الخيارات الشائعة لأدوات CLI مفتوحة المصدر</h2>
+    <table>
+      <tr><th>الترخيص</th><th>الخلاصة</th><th>مناسب لـ boltforge؟</th></tr>
+      <tr>
+        <td><strong>MIT</strong></td>
+        <td>أبسط ترخيص مسموح تقريبًا بكل شيء (استخدام تجاري، تعديل، توزيع مغلق) بشرط ذكر حقوق النشر الأصلية فقط.</td>
+        <td>✔ الأنسب — نفس ترخيص Flutter/Dart SDK نفسه، ونمط شبه معياري لأدوات pub.dev.</td>
+      </tr>
+      <tr>
+        <td><strong>Apache 2.0</strong></td>
+        <td>مشابه لـ MIT لكن يضيف حماية صريحة من براءات الاختراع (patent grant).</td>
+        <td>معقول أيضًا، لكن أثقل نصيًا دون فائدة إضافية واضحة لأداة CLI بهذا الحجم.</td>
+      </tr>
+      <tr>
+        <td><strong>BSD-3-Clause</strong></td>
+        <td>قريب من MIT مع بند إضافي يمنع استخدام اسم المشروع للترويج بدون إذن.</td>
+        <td>بديل مقبول، لكن لا يضيف شيئًا يحتاجه boltforge تحديدًا.</td>
+      </tr>
+      <tr>
+        <td><strong>GPL / AGPL</strong></td>
+        <td>يفرض نشر أي كود مشتق (copyleft) — يمنع الاستخدام في مشاريع مغلقة المصدر بسهولة.</td>
+        <td>✖ غير مناسب — يتعارض مع هدف الأداة (أن يتبنّاها أكبر عدد من الفرق، بما فيها فرق تجارية).</td>
+      </tr>
+    </table>
+
+    <h2>التوصية</h2>
+    <div class="callout tip">
+      <div class="callout-title">💡 التوصية: MIT</div>
+      <p style="margin:0">
+        نفس ترخيص Flutter وDart وGetIt وDio وBloc — كل الحزم الأساسية التي يعتمد
+        عليها boltforge مرخَّصة بـ MIT أو BSD مشابه. اختيار MIT يعني توافقًا كاملًا
+        بلا أي عوائق قانونية عبر السلسلة كلها، وأقل احتكاك ممكن أمام أي مطوّر أو
+        شركة تريد تبنّي الأداة.
+      </p>
+    </div>
+
+    <h2>التراخيص الخارجية (Third-Party)</h2>
+    <p>
+      boltforge نفسها (الأداة) تعتمد فقط على <code>args</code>, <code>path</code>,
+      <code>yaml</code> — جميعها مرخَّصة BSD-3-Clause من فريق Dart.
+      المشروع المُولَّد (تطبيق Flutter الناتج) يعتمد على <code>flutter_bloc</code>,
+      <code>dio</code>, <code>get_it</code>, <code>shared_preferences</code> — جميعها
+      مرخَّصة MIT. لا يوجد أي تعارض تراخيص.
+    </p>
+
+    <h2>ما الذي تم فعليًا</h2>
+    <ol class="criteria-list">
+      <li>إنشاء ملف <code>LICENSE</code> في الجذر بنص MIT القياسي، باسم صاحب الحقوق (Ali Hussein Habib) وسنة 2026.</li>
+      <li>حقل <code>license: MIT</code> سيظهر تلقائيًا في صفحة pub.dev عند النشر عبر اكتشاف الملف — لا حاجة لأي إعداد إضافي في <code>pubspec.yaml</code>.</li>
+      <li>لم تُستخدَم أي حزمة تتطلب إشعار Notice صريحًا، فلا حاجة لملف <code>NOTICE</code>.</li>
+    </ol>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>لماذا مشكلة</th></tr>
+      <tr><td>نشر الحزمة بدون ملف LICENSE إطلاقًا</td><td><code>dart pub publish</code> يرفضها مباشرة.</td></tr>
+      <tr><td>اختيار GPL لأداة يُراد تبنّيها في بيئات تجارية</td><td>يخيف الفرق التجارية من استخدامها بسبب متطلبات copyleft.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li>ملف <code>LICENSE</code> موجود في الجذر بنص كامل وصحيح. ✔ منجَز.</li>
+      <li>صفحة الحزمة على pub.dev تعرض تصنيف الترخيص تلقائيًا وبشكل صحيح — يُتحقَّق منه فعليًا عند النشر (<code>dart pub publish --dry-run</code>).</li>
+      <li>لا تعارض بين ترخيص boltforge وتراخيص أي تبعية مباشرة تعتمد عليها. ✔ منجَز.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="contributing.html"><span class="dir">السابق</span>المساهمة في المشروع</a>
+      <span></span>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

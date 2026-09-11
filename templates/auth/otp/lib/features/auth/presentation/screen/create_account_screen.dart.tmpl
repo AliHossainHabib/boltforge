@@ -1,0 +1,101 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/custom_text_field.dart';
+import '../../cubit/auth_cubit.dart';
+import '../../repository/auth_repository.dart';
+
+/// Shown only when [VerificationScreen] confirms the identifier has no
+/// existing account. Collects the minimum info to finish onboarding —
+/// add more fields here as the product needs them.
+class CreateAccountScreen extends StatelessWidget {
+  final String identifier;
+
+  const CreateAccountScreen({super.key, required this.identifier});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AuthCubit(sl<AuthRepository>()),
+      child: _CreateAccountView(identifier: identifier),
+    );
+  }
+}
+
+class _CreateAccountView extends StatefulWidget {
+  final String identifier;
+  const _CreateAccountView({required this.identifier});
+
+  @override
+  State<_CreateAccountView> createState() => _CreateAccountViewState();
+}
+
+class _CreateAccountViewState extends State<_CreateAccountView> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _submit(BuildContext context) {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthCubit>().completeProfile(
+          identifier: widget.identifier,
+          name: _nameController.text.trim(),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create your account')),
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthSuccess) {
+            Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (_) => false);
+          } else if (state is AuthFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.error.localizedMessage ?? 'Could not create account.')),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Verified: ${widget.identifier}', style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: _nameController,
+                      label: 'Your name',
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      label: 'Finish',
+                      isLoading: isLoading,
+                      onPressed: () => _submit(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

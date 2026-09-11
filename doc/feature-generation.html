@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>كيف أضيف Feature Generator جديدة؟ — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الأداة — الدرس الكامل</div>
+    <h1>كيف أضيف Feature Generator جديدة؟</h1>
+    <p class="lede">
+      درس شامل من الصفر: كيف يعمل <code>boltforge generate offer</code> بالضبط، ملفًا
+      ملفًا — بما في ذلك التسجيل التلقائي في GetIt والتحقق بعد التوليد — وكيف تُعدّل
+      أو تُوسّع هذا السلوك بنفسك.
+    </p>
+
+    <h2>ماذا يفعل هذا الأمر؟</h2>
+    <p>عند تشغيل هذا الأمر داخل مشروع Flutter موجود:</p>
+    <pre><code>cd my_app
+boltforge generate offer</code></pre>
+    <p>يقوم الأمر بأربعة أشياء بالترتيب:</p>
+    <ol>
+      <li>يُنشئ البنية الكاملة داخل <code>lib/features/offer/</code>.</li>
+      <li>يُسجّل <code>OfferRepository</code> تلقائيًا في <code>lib/core/di/service_locator.dart</code>.</li>
+      <li>يتحقق من النتيجة (لا ملفات ناقصة، لا <code>.tmpl</code> متسرّب، لا placeholder غير محلول، لا تسجيل مكرَّر).</li>
+      <li>يطبع تقريرًا كاملًا — بما في ذلك أي مشكلة وجدها.</li>
+    </ol>
+    <div class="tree">lib/features/offer/
+├── cubit/
+│   ├── offer_cubit.dart
+│   └── offer_state.dart
+├── repository/
+│   └── offer_repository.dart
+├── model/
+│   └── offer_model.dart
+└── presentation/
+    ├── screen/
+    │   └── offer_screen.dart
+    └── widgets/
+        └── offer_list_item.dart</div>
+
+    <h2>لماذا <code>lib/features/offer/</code> وليس <code>lib/offer/</code>؟</h2>
+    <p>
+      كل Feature في التطبيق — سواء كانت مُولَّدة من الإطار (مثل <code>auth</code> عبر
+      <code>create</code>) أو مُولَّدة يدويًا لاحقًا (مثل <code>offer</code> عبر
+      <code>generate</code>) — تعيش الآن تحت مسار واحد موحَّد: <code>lib/features/&lt;name&gt;/</code>.
+      هذا يجعل أي مطوّر ينظر إلى <code>lib/</code> يرى فورًا "كل الـ Features هنا"، بدل
+      البحث في جذر <code>lib/</code> نفسه عن مجلدات متفرقة.
+    </p>
+
+    <h2>الخطوة صفر: من أين تبدأ الرحلة في الكود؟</h2>
+    <ol>
+      <li><code>bin/boltforge.dart</code> → <code>BoltforgeRunner().run(arguments)</code></li>
+      <li><code>lib/src/cli_runner.dart</code> → يوجّه <code>generate</code> إلى <code>GenerateCommand</code></li>
+      <li><code>lib/src/commands/generate_command.dart</code> → <code>GenerateCommand.run()</code></li>
+      <li><code>lib/src/generators/feature_generator.dart</code> → <code>FeatureGenerator.generate()</code>
+        — هذا هو المنسِّق الفعلي لكل الخطوات القادمة.</li>
+    </ol>
+
+    <h2>الخطوة 1: التحقق من الاسم، ثم من المشروع</h2>
+    <p>
+      نفس الفحصين المعتادين: <code>NameValidator</code> (اسم صالح lower_snake_case)
+      ثم <code>ProjectDetector</code> (نحن فعلًا داخل مشروع Flutter). لا جديد هنا —
+      التفاصيل في <a href="cli.html">صفحة أوامر الـ CLI</a>.
+    </p>
+
+    <h2>الخطوة 2: توليد الملفات (كما كان، بمسار جديد)</h2>
+    <div class="filename-tag">lib/src/generators/feature_generator.dart</div>
+    <pre><code>final destinationRoot = Directory(p.join(projectRoot.path, 'lib', 'features'));
+
+final plannedPaths = fileService.planOutputPaths(templateDir);
+final alreadyExists = plannedPaths.any(
+  (relative) =&gt; File(p.join(destinationRoot.path, relative)).existsSync(),
+);
+
+var conflictAction = ConflictAction.overwrite;
+if (alreadyExists) {
+  conflictAction = onExistingFeature(featureName); // يسأل المستخدم
+  if (conflictAction == ConflictAction.cancel) {
+    return const FeatureGenerationResult(wasCancelled: true, ...);
+  }
+}
+
+final written = fileService.renderTree(
+  templateRoot: templateDir,
+  destinationRoot: destinationRoot, // lib/features/
+  onConflict: conflictAction,
+);</code></pre>
+    <p>إن كانت Feature بنفس الاسم موجودة، تظهر لك ثلاثة خيارات كما كان:</p>
+    <table>
+      <tr><th>الخيار</th><th>السلوك الفعلي في <code>FileService.renderTree</code></th></tr>
+      <tr><td>Cancel</td><td>لا تُكتب أي ملفات إطلاقًا، ولا يُلمَس DI إطلاقًا.</td></tr>
+      <tr><td>Overwrite</td><td>كل ملف من القالب يُعاد كتابته، حتى لو كنت قد عدّلته يدويًا.</td></tr>
+      <tr><td>Merge</td><td>يُكتب فقط الملف غير الموجود؛ أي ملف موجود مسبقًا يبقى كما هو.</td></tr>
+    </table>
+
+    <h2>الخطوة 3: التسجيل التلقائي في GetIt — كيف يعمل بالضبط؟</h2>
+    <p>
+      هذه الخطوة الجديدة. بعد كتابة الملفات، يحسب <code>FeatureGenerator</code> اسم
+      صنف الـ Repository ومسار استيراده، ثم يستدعي <code>DiRegistrar</code>:
+    </p>
+    <div class="filename-tag">lib/src/generators/feature_generator.dart</div>
+    <pre><code>final nameCase = NameCase.from(featureName);
+final repositoryClassName = '${nameCase.pascal}Repository'; // OfferRepository
+final repositoryImportPath =
+    '../../features/${nameCase.snake}/repository/${nameCase.snake}_repository.dart';
+
+final diResult = diRegistrar.registerRepository(
+  serviceLocatorFile: File(p.join(projectRoot.path, 'lib/core/di/service_locator.dart')),
+  repositoryClassName: repositoryClassName,
+  importPath: repositoryImportPath,
+);</code></pre>
+
+    <h3>لماذا ليس تحليل AST كامل لملف Dart؟</h3>
+    <p>
+      لأن <code>service_locator.dart</code> ملف تُنشئه boltforge نفسها من قالبها الخاص
+      — نتحكم في شكله بالكامل. بدل الاعتماد على حزمة <code>analyzer</code> ثقيلة
+      لتحليل الشجرة النحوية، وضعنا تعليقَي ترسيخ ثابتَين داخل القالب نفسه:
+    </p>
+    <div class="filename-tag">templates/base/lib/core/di/service_locator.dart.tmpl</div>
+    <pre><code>import 'package:get_it/get_it.dart';
+
+import '../../features/auth/repository/auth_repository.dart';
+// boltforge:imports
+
+final GetIt sl = GetIt.instance;
+
+void configureDependencies() {
+  sl.registerLazySingleton&lt;AuthRepository&gt;(() =&gt; AuthRepository());
+  // boltforge:registrations
+}</code></pre>
+    <p>
+      <code>DiRegistrar</code> يبحث عن هذين التعليقَين ويُدرج السطر الجديد
+      <strong>قبلهما مباشرة</strong>، ثم يعيد كتابة التعليق نفسه بعد الإدراج — بحيث
+      يبقى نقطة إدراج صالحة للمرة القادمة. هذا يعني أن توليد Feature عاشرة يعمل
+      بنفس موثوقية الأولى.
+    </p>
+
+    <h3>الحماية من التكرار (Duplicates)</h3>
+    <p>قبل أي إدراج، يتحقق <code>DiRegistrar</code> من وجود السطر مسبقًا:</p>
+    <pre><code>final alreadyImported = content.contains("import '$importPath';");
+final alreadyRegistered = content.contains('registerLazySingleton&lt;$repositoryClassName&gt;');
+
+if (alreadyImported &amp;&amp; alreadyRegistered) {
+  return const DiRegistrationResult(status: DiRegistrationStatus.registered); // لا تغيير
+}</code></pre>
+    <p>
+      لذلك: تشغيل <code>boltforge generate offer</code> مرتين (باختيار Overwrite عند
+      التعارض) لا يُنتج سطرَين مكرَّرين في <code>service_locator.dart</code> أبدًا.
+    </p>
+
+    <h3>الحالات الآمنة عند الفشل</h3>
+    <table>
+      <tr><th>الحالة</th><th>ماذا يحدث</th></tr>
+      <tr>
+        <td><code>service_locator.dart</code> غير موجود إطلاقًا</td>
+        <td>حالة <code>fileMissing</code> — تحذير واضح في الطرفية، الميزة نفسها لا تزال تُولَّد بنجاح، والخروج بالكود <code>0</code>.</td>
+      </tr>
+      <tr>
+        <td>الملف موجود لكن تعليقَي الترسيخ غير موجودين (مثلًا مطوّر أعاد كتابة الملف يدويًا)</td>
+        <td>حالة <code>markersMissing</code> — الأداة <strong>لا تخمّن</strong> مكان الإدراج ولا تلمس الملف إطلاقًا، وتطبع تحذيرًا يطلب منك التسجيل يدويًا.</td>
+      </tr>
+    </table>
+
+    <h2>الخطوة 4: التحقق بعد التوليد (Post-Generation Validation)</h2>
+    <p>
+      بعد التوليد والتسجيل، يشغّل <code>FeatureGenerator</code> فحصًا أخيرًا عبر
+      <code>FeatureValidator</code> — شبكة أمان إضافية، وليست بديلًا عن رمي
+      <code>TemplateEngine</code> لخطأ فوري عند متغير غير معروف:
+    </p>
+    <div class="filename-tag">lib/src/services/feature_validator.dart</div>
+    <ul>
+      <li><strong>ملفات ناقصة:</strong> أي مسار متوقَّع من القالب ولم يُكتب فعليًا → خطأ.</li>
+      <li><strong>ملفات <code>.tmpl</code> متسرّبة:</strong> أي ملف بقي بامتداده الأصلي بدل أن يُعاد تسميته → خطأ.</li>
+      <li><strong>placeholders غير محلولة:</strong> أي ملف مولَّد يحتوي على <code>{{</code> حرفيًا → خطأ.</li>
+      <li><strong>Repository غير مسجَّلة:</strong> صفر تكرارات لـ <code>registerLazySingleton&lt;X&gt;</code> → تحذير (وليس خطأ، لأن هذا وضع مُتوقَّع عند غياب service_locator.dart).</li>
+      <li><strong>تسجيل مكرَّر:</strong> أكثر من تكرار واحد → خطأ (يعني تلفًا يدويًا سابقًا في الملف، وليس نتيجة طبيعية لعمل الأداة).</li>
+    </ul>
+    <p>
+      الفرق بين <strong>خطأ</strong> و<strong>تحذير</strong> يحدد رمز الخروج:
+      أي خطأ واحد يجعل <code>boltforge generate</code> يُنهي بالكود <code>1</code>
+      (حتى لو كُتبت الملفات بنجاح) — لأن هذا يعني وجود مشكلة حقيقية تستحق الانتباه.
+    </p>
+
+    <h2>الناتج الكامل في الطرفية (كل شيء ناجح)</h2>
+    <pre><code>boltforge — generating feature "offer"
+
+  ✔ Wrote /.../lib/features/offer/model/offer_model.dart
+  ✔ Wrote /.../lib/features/offer/repository/offer_repository.dart
+  ✔ Wrote /.../lib/features/offer/cubit/offer_state.dart
+  ✔ Wrote /.../lib/features/offer/cubit/offer_cubit.dart
+  ✔ Wrote /.../lib/features/offer/presentation/screen/offer_screen.dart
+  ✔ Wrote /.../lib/features/offer/presentation/widgets/offer_list_item.dart
+
+  ✔ DI: registered the repository in lib/core/di/service_locator.dart automatically.
+
+Feature "offer" generated.
+Run `flutter analyze` to confirm imports resolve, then wire the screen into your router.</code></pre>
+
+    <h3>الناتج عند غياب service_locator.dart (تحذير فقط، ليس فشلًا)</h3>
+    <pre><code>  ⚠ DI: lib/core/di/service_locator.dart was not found — register the repository there yourself.
+
+Feature "offer" generated.</code></pre>
+
+    <h3>الناتج عند وجود تسجيل مكرَّر (خطأ حقيقي)</h3>
+    <pre><code>  ✖ Duplicate DI registration for OfferRepository found 2 times in service_locator.dart.
+
+Feature "offer" generated with problems — see errors above.</code></pre>
+    <p>وفي هذه الحالة تحديدًا، رمز الخروج هو <code>1</code> وليس <code>0</code>.</p>
+
+    <h2>محتوى <code>service_locator.dart</code> قبل وبعد (مثال كامل)</h2>
+    <p><strong>قبل</strong> تشغيل <code>boltforge generate offer</code>:</p>
+    <pre><code>void configureDependencies() {
+  sl.registerLazySingleton&lt;AuthRepository&gt;(() =&gt; AuthRepository());
+  // boltforge:registrations
+}</code></pre>
+    <p><strong>بعد</strong>:</p>
+    <pre><code>void configureDependencies() {
+  sl.registerLazySingleton&lt;AuthRepository&gt;(() =&gt; AuthRepository());
+  sl.registerLazySingleton&lt;OfferRepository&gt;(() =&gt; OfferRepository());
+  // boltforge:registrations
+}</code></pre>
+    <p>لا تدخل يدوي مطلوب على الإطلاق.</p>
+
+    <h2>كيف تُعدّل ما تولّده الأداة؟</h2>
+    <ol>
+      <li>لتغيير شكل الحالات (State) الافتراضية: عدّل
+        <code>templates/feature/{{featureName}}/cubit/{{featureName}}_state.dart.tmpl</code>.</li>
+      <li>لإضافة دالة جديدة لكل Repository مولَّدة تلقائيًا: عدّل
+        <code>{{featureName}}_repository.dart.tmpl</code>.</li>
+      <li>لإضافة widget افتراضي آخر داخل <code>presentation/widgets/</code>: أنشئ ملف
+        <code>.tmpl</code> جديدًا هناك — سيُنسخ تلقائيًا لكل Feature قادمة.</li>
+      <li>لتغيير آلية التسجيل في GetIt نفسها: عدّل <code>lib/src/services/di_registrar.dart</code>
+        (احذر: لا تغيّر نص تعليقَي الترسيخ هنا دون تحديث القالب أيضًا).</li>
+      <li>لإضافة فحص تحقق جديد بعد التوليد: أضِفه في <code>lib/src/services/feature_validator.dart</code>.</li>
+    </ol>
+
+    <h2>كيف تختبر تعديلك؟</h2>
+    <p>
+      لا تحتاج مشروع Flutter حقيقي ولا Flutter مثبَّتًا لاختبار أي جزء من هذا —
+      كل شيء (التوليد، DI، التحقق) يعمل على ملفات ومجلدات مؤقتة حقيقية:
+    </p>
+    <table>
+      <tr><th>الملف</th><th>يغطي</th></tr>
+      <tr><td><code>test/feature_generator_test.dart</code></td><td>التوليد كاملًا (بنية، أصناف، استيرادات) + تكامل DI والتحقق</td></tr>
+      <tr><td><code>test/di_registrar_test.dart</code></td><td><code>DiRegistrar</code> وحده: إدراج، عدم تكرار، تعامل آمن مع ملف مفقود/معدَّل يدويًا</td></tr>
+    </table>
+    <pre><code>dart test test/feature_generator_test.dart test/di_registrar_test.dart</code></pre>
+
+    <h2>أخطاء شائعة عند إضافة أو تعديل Feature Generator</h2>
+    <table>
+      <tr><th>الخطأ</th><th>لماذا يحدث ولماذا هو خطير</th></tr>
+      <tr>
+        <td>نسيان تحديث عمق مسار الاستيراد النسبي بعد تغيير عمق المجلد</td>
+        <td>كل ملف <code>.tmpl</code> يعتمد على عمقه الدقيق داخل <code>lib/features/&lt;feature&gt;/...</code>.
+          إضافة مجلد فرعي جديد يغيّر العمق ويكسر كل الاستيرادات دفعة واحدة.</td>
+      </tr>
+      <tr>
+        <td>حذف تعليق <code>// boltforge:imports</code> أو <code>// boltforge:registrations</code> من القالب</td>
+        <td>يوقف <code>DiRegistrar</code> بالكامل — سيُرجع <code>markersMissing</code> لكل مشروع جديد.</td>
+      </tr>
+      <tr>
+        <td>استخدام متغير غير معرَّف في <code>TemplateContext</code></td>
+        <td>لن يُترجَم الملف مطلقًا — <code>TemplateEngine</code> يرمي
+          <code>TemplateVariableError</code> عمدًا بدل تجاهل المتغير بصمت.</td>
+      </tr>
+      <tr>
+        <td>افتراض أن Merge "يدمج محتوى الملفين"</td>
+        <td>Merge لا يدمج المحتوى إطلاقًا — فقط يقرر أي الملفات (كوحدة كاملة) تُكتب وأيها يبقى.</td>
+      </tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li><code>boltforge generate offer</code> ينتج ستة ملفات بالضبط تحت <code>lib/features/offer/</code>.</li>
+      <li><code>OfferRepository</code> مسجَّلة تلقائيًا في <code>service_locator.dart</code> — مرة واحدة بالضبط.</li>
+      <li>كل استيراد داخل الملفات المولَّدة يُشير إلى مسار موجود فعليًا (يتحقق منه <code>flutter analyze</code>).</li>
+      <li>تشغيل الأمر مرتين على نفس الاسم لا يُنتج تسجيل DI مكرَّرًا، ولا يحذف شيئًا تلقائيًا.</li>
+      <li>اسم غير صالح يُرفض بالكود <code>64</code> قبل لمس أي ملف أو أي تعديل على DI.</li>
+      <li>أي مشكلة حقيقية (تسجيل مكرَّر، ملف ناقص) تُنهي الأمر بالكود <code>1</code> مع رسالة واضحة — لا نجاح صامت أبدًا.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="authentication.html"><span class="dir">السابق</span>أنظمة تسجيل الدخول</a>
+      <a class="next" href="templates.html"><span class="dir">التالي</span>نظام القوالب</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

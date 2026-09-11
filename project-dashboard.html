@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم مشروع boltforge</title>
+<link rel="stylesheet" href="doc/assets/style.css">
+<style>
+  /* Dashboard uses a single-column layout (tabs, not a docs sidebar). */
+  .dash-layout { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  .dash-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .dash-topbar .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .dash-topbar .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .dash-topbar-actions { display: flex; align-items: center; gap: 10px; }
+  #dashboard-search {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text); font-family: inherit; font-size: 13.5px;
+    min-width: 220px;
+  }
+  @media (max-width: 640px) {
+    #dashboard-search { min-width: 0; width: 100%; }
+    .dash-topbar-actions { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="dash-layout">
+  <div class="dash-topbar">
+    <div class="brand"><span class="dot"></span> boltforge <span class="tag">لوحة التحكم</span></div>
+    <div class="dash-topbar-actions">
+      <input type="text" id="dashboard-search" placeholder="ابحث في اللوحة… (مثال: pub.dev, license, offer)">
+      <button class="reset-btn" id="reset-btn" type="button">إعادة تعيين التقدّم المحفوظ</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tab-bar"></div>
+
+  <main id="tab-panel"></main>
+</div>
+<script src="doc/assets/dashboard.js" defer></script>
+</body>
+</html>

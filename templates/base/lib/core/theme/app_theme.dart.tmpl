@@ -1,0 +1,32 @@
+import 'package:flutter/material.dart';
+
+import 'app_colors.dart';
+
+/// Light/dark [ThemeData] factories. Kept as plain static methods (not a
+/// singleton) so `MaterialApp(theme: AppTheme.light(), darkTheme:
+/// AppTheme.dark())` reads naturally at the call site.
+class AppTheme {
+  AppTheme._();
+
+  static ThemeData light() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorSchemeSeed: AppColors.primary,
+      scaffoldBackgroundColor: Colors.white,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+    );
+  }
+
+  static ThemeData dark() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorSchemeSeed: AppColors.primary,
+    );
+  }
+}

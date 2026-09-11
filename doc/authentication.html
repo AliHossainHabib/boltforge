@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أنظمة تسجيل الدخول — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الأداة</div>
+    <h1>أنظمة تسجيل الدخول (Authentication)</h1>
+    <p class="lede">شرح كامل لقالبَي المصادقة: Password و OTP، وكيف تختار بينهما.</p>
+
+    <h2>ماذا يفعل هذا النظام؟</h2>
+    <p>
+      عند <code>boltforge create</code>، تختار أحد نمطين لتسجيل الدخول، فتُطبَّق
+      مجموعة ملفات مختلفة تمامًا (شاشات، Cubit، Repository) بينما تبقى الطبقة
+      الأساسية (<code>ApiResult</code>, <code>DioClient</code>, <code>Routes</code>...)
+      واحدة في الحالتين.
+    </p>
+
+    <h2>لماذا نمطان منفصلان بدل نمط واحد مرن؟</h2>
+    <p>
+      لأن تدفّق Password (تسجيل دخول بكلمة مرور + نسيت كلمة المرور) وتدفّق OTP
+      (تحقّق برمز يُرسَل، بدون كلمة مرور) يختلفان في عدد الشاشات، عدد استدعاءات
+      الـ API، وحتى في الحالات الممكنة للـ Cubit. محاولة توحيدهما في تدفّق واحد
+      "مرن" كانت ستُنتج كودًا مليئًا بشروط <code>if (usesPassword)</code> متناثرة —
+      بدل ذلك، القالب بأكمله (الشاشات + الـ Cubit + الـ Repository) يُستبدل حسب
+      <code>{{#if authPassword}}</code> / <code>{{#if authOtp}}</code> في الملفات
+      المشتركة (<code>routes.dart</code>, <code>app_router.dart</code>, <code>splash_screen.dart</code>)،
+      وملفات كاملة منفصلة لكل نمط.
+    </p>
+
+    <h2>نمط Password</h2>
+    <div class="tree">templates/auth/password/lib/features/auth/
+├── model/user_model.dart.tmpl
+├── repository/auth_repository.dart.tmpl   login / register / forgotPassword / resetPassword
+├── cubit/
+│   ├── auth_cubit.dart.tmpl                login() / register() / forgotPassword()
+│   └── auth_state.dart.tmpl                Initial / Loading / Success / Failure
+└── presentation/screen/
+    ├── login_screen.dart.tmpl
+    ├── register_screen.dart.tmpl
+    └── forgot_password_screen.dart.tmpl</div>
+
+    <h3>مخطط التدفق</h3>
+    <pre><code>Login
+ ↓
+Email/Phone + Password
+ ↓
+AuthCubit.login()
+ ↓
+AuthRepository.login() → POST ApiConstants.login
+ ↓
+نجاح؟ → تخزين token → AuthSuccess → Navigator إلى Routes.home
+فشل؟  → AuthFailure(ApiError) → SnackBar</code></pre>
+
+    <h3>مثال كود حقيقي: AuthCubit.login</h3>
+    <div class="filename-tag">templates/auth/password/.../cubit/auth_cubit.dart.tmpl</div>
+    <pre><code>Future&lt;void&gt; login({required String email, required String password}) async {
+  emit(const AuthLoading());
+  final result = await _repository.login(email: email, password: password);
+  if (result.success &amp;&amp; result.data != null) {
+    emit(AuthSuccess(result.data!));
+  } else {
+    emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+  }
+}</code></pre>
+
+    <h2>نمط OTP</h2>
+    <div class="tree">templates/auth/otp/lib/features/auth/
+├── model/user_model.dart.tmpl
+├── repository/auth_repository.dart.tmpl   requestOtp / verifyOtp / completeProfile
+├── cubit/
+│   ├── auth_cubit.dart.tmpl
+│   └── auth_state.dart.tmpl   + OtpSent(accountExists) + VerifiedNeedsProfile
+└── presentation/screen/
+    ├── verification_screen.dart.tmpl
+    └── create_account_screen.dart.tmpl</div>
+
+    <h3>مخطط التدفق (يطابق الطلب الأصلي بالضبط)</h3>
+    <pre><code>Start
+ ↓
+Verification Screen (إدخال Email أو Phone)
+ ↓
+AuthCubit.requestOtp() → Repository.requestOtp()
+ ↓
+الخادم يُرجع accountExists: true/false + يرسل رمز التحقق
+ ↓
+المستخدم يُدخل الرمز → AuthCubit.verifyOtp()
+ ↓
+Account exists?
+ ├── YES → AuthSuccess(user) مباشرة → Home
+ └── NO  → VerifiedNeedsProfile → CreateAccountScreen (اسم فقط) → completeProfile() → Home</code></pre>
+
+    <div class="callout warn">
+      <div class="callout-title">⚠ افتراض على عقد الـ Backend</div>
+      <p style="margin:0">
+        هذا التدفق يفترض أن نقطة النهاية <code>ApiConstants.requestOtp</code> تُرجع
+        حقل <code>accountExists</code> ضمن <code>data</code>. إن كان الـ backend لديك
+        لا يدعم هذا الحقل، عدّل <code>AuthRepository.requestOtp</code> في
+        <code>templates/auth/otp/.../repository/auth_repository.dart.tmpl</code> ليطابق
+        عقدك الفعلي — هذا الافتراض <strong>لم يُختبر</strong> ضد backend حقيقي بعد.
+      </p>
+    </div>
+
+    <h2>الاختيار بين النمطين: أين تُقرأ القيمة؟</h2>
+    <p>القيمة <code>usesPassword</code> تتحول إلى علمين متعاكسين دومًا:</p>
+    <div class="filename-tag">lib/src/template_engine/template_context.dart</div>
+    <pre><code>flags: {
+  'authPassword': usesPassword,
+  'authOtp': !usesPassword,
+},</code></pre>
+    <p>
+      وتُستخدم هذه الأعلام في الملفات المشتركة لتضمين/استبعاد أجزاء كاملة، مثال من
+      <code>routes.dart.tmpl</code>:
+    </p>
+    <pre><code>{{#if authPassword}}
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+{{/if}}
+{{#if authOtp}}
+  static const String verify = '/verify';
+  static const String createAccount = '/create-account';
+{{/if}}</code></pre>
+
+    <h2>كيف تُضيف طريقة تحقق ثالثة (مثلًا: Social Login)؟</h2>
+    <ol>
+      <li>أنشئ مجلدًا جديدًا <code>templates/auth/social/</code> بنفس بنية
+        <code>password</code>/<code>otp</code>.</li>
+      <li>أضف علمًا جديدًا (<code>authSocial</code>) في
+        <code>TemplateContext.forProject</code>، وحدّث منطق <code>usesPassword</code>
+        الثنائي الحالي ليصبح enum بثلاث قيم بدل bool.</li>
+      <li>حدّث <code>--auth</code> في <code>CreateCommand</code> ليقبل القيمة الجديدة
+        ضمن <code>allowed: ['password', 'otp', 'social']</code>.</li>
+      <li>حدّث <code>ProjectGenerator</code> ليختار مجلد القالب الصحيح بدل
+        <code>usesPassword ? 'password' : 'otp'</code>.</li>
+      <li>أضف اختبارات جديدة في <code>test/auth_generation_test.dart</code> بنفس
+        أسلوب مجموعتي "Password authentication generation" و"OTP authentication generation".</li>
+    </ol>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>السبب</th></tr>
+      <tr><td>ظهور شاشتي login و verification معًا</td><td>لن يحدث فعليًا — القالبان متنافيان بالكامل ولا يُطبَّقان معًا أبدًا، لكن تأكد أنك لم تُعدّل <code>ProjectGenerator</code> يدويًا لتطبيق كليهما.</td></tr>
+      <tr><td>استيراد مفقود لـ <code>LoginScreen</code> في <code>app_router.dart</code></td><td>تأكد أن قيمة <code>usesPassword</code> الممرَّرة للقالب مطابقة لما اخترته فعليًا عند <code>create</code>.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li>مشروع أُنشئ بـ <code>--auth=password</code> يحتوي على <code>login_screen.dart</code> ولا يحتوي إطلاقًا على <code>verification_screen.dart</code>.</li>
+      <li>مشروع أُنشئ بـ <code>--auth=otp</code> والعكس تمامًا.</li>
+      <li><code>routes.dart</code> في كل حالة يحتوي فقط على ثوابت النمط المختار.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="project-generation.html"><span class="dir">السابق</span>إنشاء مشروع</a>
+      <a class="next" href="feature-generation.html"><span class="dir">التالي</span>توليد Feature</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

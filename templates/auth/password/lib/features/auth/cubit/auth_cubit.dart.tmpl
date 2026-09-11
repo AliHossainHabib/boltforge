@@ -1,0 +1,50 @@
+import 'package:bloc/bloc.dart';
+import 'package:meta/meta.dart';
+
+import '../../../core/network/api_error.dart';
+import '../model/user_model.dart';
+import '../repository/auth_repository.dart';
+
+part 'auth_state.dart';
+
+/// Owns the login/register/forgot-password flow. Created per-screen via
+/// `BlocProvider(create: (_) => AuthCubit(sl<AuthRepository>()))` — never
+/// registered in the service locator itself (see `service_locator.dart`).
+class AuthCubit extends Cubit<AuthState> {
+  final AuthRepository _repository;
+
+  AuthCubit(this._repository) : super(const AuthInitial());
+
+  Future<void> login({required String email, required String password}) async {
+    emit(const AuthLoading());
+    final result = await _repository.login(email: email, password: password);
+    if (result.success && result.data != null) {
+      emit(AuthSuccess(result.data!));
+    } else {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+    }
+  }
+
+  Future<void> register({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    emit(const AuthLoading());
+    final result = await _repository.register(email: email, password: password, name: name);
+    if (result.success && result.data != null) {
+      emit(AuthSuccess(result.data!));
+    } else {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+    }
+  }
+
+  Future<void> forgotPassword({required String email}) async {
+    emit(const AuthLoading());
+    final result = await _repository.forgotPassword(email: email);
+    if (!result.success) {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+    }
+    // On success, the screen navigates to the reset step — no state change needed.
+  }
+}

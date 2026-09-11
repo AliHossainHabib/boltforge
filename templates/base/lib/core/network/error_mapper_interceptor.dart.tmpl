@@ -1,0 +1,24 @@
+import 'package:dio/dio.dart';
+
+import 'api_error.dart';
+
+/// Attaches a standardized [ApiError] onto every [DioException] so
+/// repositories can read `e.apiError` without re-parsing the failure.
+class ErrorMapperInterceptor extends Interceptor {
+  static const String _apiErrorKey = 'api_error';
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    err.requestOptions.extra[_apiErrorKey] = ApiError.fromDio(err);
+    handler.next(err);
+  }
+}
+
+extension DioExceptionApiError on DioException {
+  ApiError get apiError {
+    final cached =
+        requestOptions.extra[ErrorMapperInterceptor._apiErrorKey];
+    if (cached is ApiError) return cached;
+    return ApiError.fromDio(this);
+  }
+}

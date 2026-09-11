@@ -1,0 +1,33 @@
+import 'package:get_it/get_it.dart';
+
+import '../../features/auth/repository/auth_repository.dart';
+// boltforge:imports
+
+/// Global service locator instance.
+///
+/// Usage:
+/// ```dart
+/// BlocProvider(create: (_) => OfferCubit(sl<OfferRepository>()))
+/// ```
+///
+/// Rules:
+/// - Repositories are registered as lazy singletons (one instance for the
+///   app lifetime, constructed on first access).
+/// - Cubits are NOT registered here — they are feature-scoped and created
+///   by their owning `BlocProvider`, pulling repositories from [sl].
+/// - Never call [sl] from inside a widget's `build` — resolve it in the
+///   `BlocProvider.create` callback instead.
+final GetIt sl = GetIt.instance;
+
+/// Registers all app-wide singletons. Called once from `bootstrap()`
+/// before `runApp`.
+///
+/// `boltforge generate <feature>` edits this function automatically to
+/// register each new feature's repository — the two `// boltforge:...`
+/// comments above and below are stable anchors it inserts before. Do not
+/// remove them; if they are removed, boltforge falls back to asking you
+/// to register new repositories by hand instead of editing this file.
+void configureDependencies() {
+  sl.registerLazySingleton<AuthRepository>(() => AuthRepository());
+  // boltforge:registrations
+}

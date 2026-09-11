@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: dart ${{ matrix.sdk }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # boltforge is a CLI tool run by developers on their own machines,
+        # so both platforms matter — a prior version of this project
+        # shipped a bug (an assumption about how `dart pub global
+        # activate` lays out its cached executable) that only ever
+        # surfaced on Windows and never on Ubuntu.
+        os: [ubuntu-latest, windows-latest]
+        sdk: [stable]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Run tests
+        run: dart test

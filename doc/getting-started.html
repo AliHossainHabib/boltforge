@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>البدء السريع — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">البداية</div>
+    <h1>البدء السريع</h1>
+    <p class="lede">تثبيت الأداة، وإنشاء أول مشروع، خطوة بخطوة.</p>
+
+    <h2>ما الهدف من هذه الصفحة؟</h2>
+    <p>
+      توصيل أي مطوّر Flutter من "لا شيء مثبَّت" إلى "لدي مشروع يعمل بمعمارية جاهزة"
+      في أقل عدد ممكن من الخطوات، مع توضيح ماذا يحدث فعليًا في كل خطوة بدل حفظها
+      كصندوق أسود.
+    </p>
+
+    <h2>لماذا توجد هذه الخطوة (التثبيت)؟</h2>
+    <p>
+      boltforge حزمة Dart قابلة للتفعيل عالميًا (global activation) مثل أي أداة
+      CLI أخرى في نظام Dart البيئي (مثل <code>dart_frog</code> أو <code>mason</code>).
+      هذا يعني أنها تُثبَّت مرة واحدة وتصبح متاحة كأمر <code>boltforge</code> في أي
+      مجلد.
+    </p>
+
+    <h2>المتطلبات</h2>
+    <ul>
+      <li>Flutter SDK مثبّت ومُتاح في PATH (<code>flutter --version</code> يعمل).</li>
+      <li>Dart SDK (يأتي مع Flutter تلقائيًا).</li>
+      <li>اتصال إنترنت عند إنشاء مشروع جديد (لأجل <code>flutter pub add</code>).</li>
+    </ul>
+
+    <h2>الأمر بالضبط</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code>dart pub global activate boltforge</code></pre>
+
+    <div class="callout warn">
+      <div class="callout-title">⚠ ملاحظة صريحة</div>
+      <p style="margin:0">
+        هذا الأمر يفترض أن الحزمة منشورة فعليًا على pub.dev. في الوضع الحالي
+        (Phase 1) لم يتم النشر بعد — راجع <a href="publishing.html">صفحة النشر</a>.
+        للتجربة الآن محليًا، استخدم بدلًا من ذلك:
+      </p>
+      <pre style="margin-top:10px"><code>cd boltforge
+dart pub global activate --source path .</code></pre>
+    </div>
+
+    <h2>الناتج المتوقع</h2>
+    <pre><code>Activated boltforge 0.1.0.</code></pre>
+    <p>
+      وإن لم يكن مجلد <code>~/.pub-cache/bin</code> ضمن PATH، سيطبع Dart تحذيرًا
+      يطلب إضافته — نفّذ ما يطلبه بالضبط قبل المتابعة.
+    </p>
+
+    <h2>التحقق من التثبيت</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code>boltforge doctor</code></pre>
+    <p>الناتج المتوقع عند سلامة البيئة (الكود في <code>lib/src/commands/doctor_command.dart</code>):</p>
+    <pre><code>boltforge doctor
+
+boltforge 0.1.0
+  ✔ Dart SDK found: Dart SDK version: 3.x.x ...
+  ✔ Flutter found: Flutter 3.x.x • channel stable • ...
+
+Everything is set up. You are ready to run `boltforge create`.</code></pre>
+
+    <h2>إنشاء أول مشروع</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code>boltforge create my_app --auth=password</code></pre>
+    <p>
+      إن حذفت <code>--auth</code>، ستسألك الأداة تفاعليًا (الكود في
+      <code>lib/src/commands/create_command.dart</code>، الدالة
+      <code>_defaultPromptAuthChoice</code>):
+    </p>
+    <pre><code>Does authentication use a password?
+  [1] Yes — email/phone + password, with forgot-password
+  [2] No  — email/phone verification only (OTP-style)
+&gt;</code></pre>
+
+    <h2>الناتج المتوقع لإنشاء المشروع</h2>
+    <pre><code>boltforge — creating "my_app"
+
+  → Creating Flutter project "my_app"
+  ✔ Flutter project scaffolded
+  → Adding required dependencies
+  ✔ Dependencies added to pubspec.yaml
+  → Applying base architecture
+  ✔ Base architecture applied (core/ layer)
+  → Configuring authentication (password)
+  ✔ Authentication flow generated (password)
+  → Installing dependencies
+  ✔ Dependencies installed
+  → Validating generated code (flutter analyze)
+  ✔ No analysis issues found
+  → Running tests
+  ✔ Tests passed
+
+Project created successfully!
+cd my_app &amp;&amp; flutter run</code></pre>
+
+    <h2>كيف تتفاعل المكوّنات هنا؟</h2>
+    <p>
+      <code>CreateCommand.run()</code> يتحقق من الاسم عبر <code>NameValidator</code>،
+      ثم يتأكد أن Flutter متاح عبر <code>ProcessService.isAvailable</code>، ثم يفوّض
+      كل العمل الفعلي لـ <code>ProjectGenerator.generate()</code> الذي ينفّذ سبع
+      خطوات بالترتيب ويتوقف عند أول خطوة فاشلة (راجع
+      <a href="architecture.html">صفحة المعمارية</a> للتفصيل الكامل).
+    </p>
+
+    <h2>أخطاء شائعة عند البدء</h2>
+    <table>
+      <tr><th>المشكلة</th><th>السبب</th><th>الحل</th></tr>
+      <tr>
+        <td>Exit code <code>69</code></td>
+        <td>Flutter غير موجود في PATH</td>
+        <td>ثبّت Flutter وتأكد أن <code>flutter --version</code> يعمل، ثم أعد المحاولة.</td>
+      </tr>
+      <tr>
+        <td>Exit code <code>65</code></td>
+        <td>مجلد بنفس اسم المشروع موجود مسبقًا</td>
+        <td>اختر اسمًا آخر أو احذف المجلد القديم يدويًا — الأداة لا تحذف شيئًا تلقائيًا.</td>
+      </tr>
+      <tr>
+        <td>Exit code <code>64</code></td>
+        <td>اسم المشروع غير صالح (أحرف كبيرة، شرطات، أرقام بالبداية...)</td>
+        <td>استخدم <code>lower_snake_case</code> فقط، راجع <a href="project-generation.html">صفحة إنشاء المشروع</a>.</td>
+      </tr>
+    </table>
+
+    <h2>معايير القبول (Acceptance Criteria)</h2>
+    <ul class="criteria-list">
+      <li>تشغيل <code>boltforge doctor</code> يعطي ✔ لكل من Dart وFlutter.</li>
+      <li>تشغيل <code>boltforge create test_app</code> ينتج مشروع Flutter صالح.</li>
+      <li>الأمر يتوقف صراحةً برسالة خطأ عند فشل أي خطوة، لا يدّعي النجاح أبدًا.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="index.html"><span class="dir">السابق</span>الصفحة الرئيسية</a>
+      <a class="next" href="architecture.html"><span class="dir">التالي</span>المعمارية العامة</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

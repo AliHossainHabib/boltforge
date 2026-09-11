@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المساهمة في المشروع — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">النشر</div>
+    <h1>المساهمة في المشروع</h1>
+    <p class="lede">كيف تضيف كودًا لهذا المشروع بأسلوب يتوافق مع قواعده الحالية.</p>
+
+    <div class="callout tip">
+      <div class="callout-title">✔ تم إنشاء ملف CONTRIBUTING.md فعليًا</div>
+      <p style="margin:0">
+        هذه الصفحة تشرح القواعد بتفصيل أكبر مع أمثلة، لكن الملف المرجعي الذي
+        يظهره GitHub تلقائيًا عند فتح Issue أو Pull Request هو
+        <code>CONTRIBUTING.md</code> في جذر المستودع — وهو موجود الآن ويحيل
+        إلى هذه الصفحة للتفاصيل الكاملة.
+      </p>
+    </div>
+
+    <h2>القواعد المعمارية الملزمة</h2>
+    <ol>
+      <li><strong>لا Cubit يُسجَّل في GetIt أبدًا</strong> — فقط الـ Repositories (راجع <a href="architecture.html">صفحة المعمارية</a>).</li>
+      <li><strong>كل استدعاء لعملية خارجية (flutter/dart) يمر عبر <code>ProcessService</code></strong> — أبدًا <code>Process.run</code> مباشرة داخل command أو generator.</li>
+      <li><strong>كل مسار قوالب يجب أن يكون قابلًا للحقن</strong> — أي generator أو command جديد يقرأ من <code>templates/</code> يجب أن يقبل <code>templatesRoot</code> إجباريًا في مُنشئه (وليس اختياريًا بقيمة افتراضية داخلية — راجع <a href="templates.html">صفحة نظام القوالب</a> لسبب هذا القرار).</li>
+      <li><strong>لا كتابة صامتة فوق ملفات موجودة</strong> — أي عملية توليد تواجه ملفًا موجودًا يجب أن تمر عبر آلية <code>ConflictAction</code> (cancel/overwrite/merge)، لا استبدال تلقائي بصمت.</li>
+      <li><strong>متغيرات القالب المفقودة = خطأ فوري</strong> — لا تُرجع أبدًا سلسلة فارغة بدل رمي <code>TemplateVariableError</code>.</li>
+    </ol>
+
+    <h2>أسلوب الكود</h2>
+    <ul>
+      <li>يتّبع <code>analysis_options.yaml</code> في جذر المشروع (يستند إلى <code>package:lints/recommended.yaml</code>).</li>
+      <li>علامات اقتباس مفردة (<code>'single quotes'</code>) وليست مزدوجة.</li>
+      <li>كل دالة عامة يجب أن يكون نوع إرجاعها معلنًا صراحة (<code>always_declare_return_types</code>).</li>
+      <li>تعليقات <code>///</code> (doc comments) على كل صنف/دالة عامة تشرح <strong>لماذا</strong> وليس فقط <strong>ماذا</strong>.</li>
+    </ul>
+
+    <h2>قبل إرسال أي تعديل</h2>
+    <div class="filename-tag">terminal</div>
+    <pre><code>dart format .
+dart analyze
+dart test</code></pre>
+    <p>
+      لا يُقبل أي تعديل لا يمر بهذه الأوامر الثلاثة بدون أخطاء — وهي تُشغَّل فعليًا
+      على كل Pull Request عبر CI (راجع <a href="testing.html">صفحة الاختبارات</a>).
+    </p>
+
+    <h2>إضافة اختبار مع كل تعديل سلوكي</h2>
+    <p>
+      أي تغيير في سلوك ملحوظ (مسار جديد، خيار CLI جديد، حقل قالب جديد) يجب أن
+      يرافقه اختبار حقيقي يتحقق من محتوى فعلي — وليس فقط "الدالة لم تنهَر". راجع
+      <a href="testing.html">صفحة الاختبارات</a> للنمط المتَّبع بالضبط.
+    </p>
+
+    <h2>إضافة Feature أو Auth mode جديد</h2>
+    <p>
+      اتبع الأدلة المخصصة لكل حالة بالتفصيل الكامل:
+    </p>
+    <ul>
+      <li><a href="feature-generation.html">كيف أضيف Feature Generator جديدة؟</a></li>
+      <li><a href="authentication.html">كيف أضيف طريقة مصادقة جديدة؟</a></li>
+      <li><a href="templates.html">كيف أضيف قالبًا جديدًا بالكامل؟</a></li>
+    </ul>
+
+    <h2>أخطاء شائعة عند المساهمة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>لماذا يُرفَض</th></tr>
+      <tr><td>تعديل قالب بدون اختبار مطابق في <code>test/</code></td><td>خطأ في مسار استيراد قد يمر دون ملاحظة حتى يصطدم به مستخدم فعلي.</td></tr>
+      <tr><td>إضافة تبعية جديدة للأداة نفسها بدون سبب واضح موثَّق</td><td>كل تبعية إضافية تزيد وقت <code>dart pub get</code> وسطح الهجوم الأمني — يجب أن تكون ضرورية فعلًا.</td></tr>
+      <tr><td>كتابة منطق توليد ملفات مباشرة داخل ملف <code>commands/</code></td><td>يكسر فصل المسؤوليات — يجب أن يبقى في <code>generators/</code>.</td></tr>
+    </table>
+
+    <h2>معايير القبول لأي Pull Request</h2>
+    <ul class="criteria-list">
+      <li><code>dart format .</code> لم يُغيّر أي ملف (الكود مُنسَّق مسبقًا).</li>
+      <li><code>dart analyze</code> بدون أي تحذير أو خطأ.</li>
+      <li><code>dart test</code> ناجح بالكامل.</li>
+      <li>كل سلوك جديد موثَّق في صفحة التوثيق المناسبة (وليس فقط في تعليق كود).</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="publishing.html"><span class="dir">السابق</span>النشر على pub.dev</a>
+      <a class="next" href="license.html"><span class="dir">التالي</span>الترخيص</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

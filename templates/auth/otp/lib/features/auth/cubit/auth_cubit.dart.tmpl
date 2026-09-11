@@ -1,0 +1,51 @@
+import 'package:bloc/bloc.dart';
+import 'package:meta/meta.dart';
+
+import '../../../core/network/api_error.dart';
+import '../model/user_model.dart';
+import '../repository/auth_repository.dart';
+
+part 'auth_state.dart';
+
+/// Owns the request-OTP / verify-OTP / complete-profile flow. Created
+/// per-screen via `BlocProvider(create: (_) => AuthCubit(sl<AuthRepository>()))`.
+class AuthCubit extends Cubit<AuthState> {
+  final AuthRepository _repository;
+
+  AuthCubit(this._repository) : super(const AuthInitial());
+
+  Future<void> requestOtp({required String identifier}) async {
+    emit(const AuthLoading());
+    final result = await _repository.requestOtp(identifier: identifier);
+    if (result.success) {
+      emit(OtpSent(result.data ?? false));
+    } else {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+    }
+  }
+
+  Future<void> verifyOtp({required String identifier, required String code}) async {
+    emit(const AuthLoading());
+    final result = await _repository.verifyOtp(identifier: identifier, code: code);
+    if (!result.success) {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+      return;
+    }
+    final user = result.data;
+    if (user != null) {
+      emit(AuthSuccess(user));
+    } else {
+      emit(const VerifiedNeedsProfile());
+    }
+  }
+
+  Future<void> completeProfile({required String identifier, required String name}) async {
+    emit(const AuthLoading());
+    final result = await _repository.completeProfile(identifier: identifier, name: name);
+    if (result.success && result.data != null) {
+      emit(AuthSuccess(result.data!));
+    } else {
+      emit(AuthFailure(result.error ?? const ApiError(code: 'unknown', messageKey: 'err_unknown')));
+    }
+  }
+}

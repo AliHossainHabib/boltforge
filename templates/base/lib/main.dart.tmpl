@@ -1,0 +1,14 @@
+import 'package:flutter/material.dart';
+
+import 'app/app.dart';
+import 'app/bootstrap.dart';
+
+/// App entrypoint. Responsibilities here are intentionally minimal:
+/// run [bootstrap] (storage, networking, DI), then `runApp`.
+///
+/// Feature-specific cubits are scoped inside their own `BlocProvider` at
+/// the screen level — never added here.
+Future<void> main() async {
+  await bootstrap();
+  runApp(const MyApp());
+}

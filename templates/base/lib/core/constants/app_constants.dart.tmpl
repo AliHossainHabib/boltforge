@@ -1,0 +1,8 @@
+/// App-wide constant keys. Kept separate from [ApiConstants] since these
+/// are local (storage/prefs) concerns, not backend contract.
+class AppConstants {
+  AppConstants._();
+
+  static const String accessTokenKey = 'access_token';
+  static const String userKey = 'cached_user';
+}

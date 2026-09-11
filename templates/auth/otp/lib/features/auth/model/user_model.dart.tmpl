@@ -1,0 +1,21 @@
+class UserModel {
+  final String id;
+  final String identifier; // email or phone
+  final String? name;
+
+  const UserModel({required this.id, required this.identifier, this.name});
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id']?.toString() ?? '',
+      identifier: json['identifier']?.toString() ?? json['email']?.toString() ?? '',
+      name: json['name']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'identifier': identifier,
+        'name': name,
+      };
+}

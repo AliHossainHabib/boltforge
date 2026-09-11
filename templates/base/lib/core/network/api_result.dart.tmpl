@@ -1,0 +1,47 @@
+import 'api_error.dart';
+
+/// Standard backend response envelope: `{ data, message, pagination }`
+/// on success, or a mapped [ApiError] on failure. Every repository method
+/// returns `ApiResult<T>` — cubits branch on `result.success` and never
+/// touch Dio or DioException directly.
+class ApiResult<T> {
+  final bool success;
+  final String message;
+  final T? data;
+  final ApiError? error;
+  final int? statusCode;
+
+  const ApiResult({
+    required this.success,
+    required this.message,
+    this.data,
+    this.error,
+    this.statusCode,
+  });
+
+  factory ApiResult.fromJson(
+    Map<String, dynamic> json, {
+    T Function(dynamic)? fromData,
+  }) {
+    return ApiResult(
+      success: json['success'] == true,
+      message: json['message']?.toString() ?? '',
+      data: json['data'] != null
+          ? (fromData != null ? fromData(json['data']) : json['data'] as T)
+          : null,
+    );
+  }
+
+  factory ApiResult.success(T data, [String message = '']) {
+    return ApiResult(success: true, message: message, data: data);
+  }
+
+  factory ApiResult.failure(ApiError error, {int? statusCode}) {
+    return ApiResult(
+      success: false,
+      message: error.localizedMessage ?? '',
+      error: error,
+      statusCode: statusCode ?? error.statusCode,
+    );
+  }
+}

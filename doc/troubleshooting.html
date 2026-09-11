@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>استكشاف الأخطاء — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الجودة</div>
+    <h1>استكشاف الأخطاء وإصلاحها</h1>
+    <p class="lede">دليل مرجعي لكل رسالة خطأ قد تراها، من أين تأتي بالضبط، وكيف تحلّها.</p>
+
+    <h2>ماذا تغطي هذه الصفحة؟</h2>
+    <p>
+      كل رسالة خطأ في هذه الصفحة مرتبطة بسطر كود فعلي في المشروع — لا توجد رسالة
+      "افتراضية" لم يُتحقَّق من مصدرها.
+    </p>
+
+    <h2>أخطاء <code>boltforge create</code></h2>
+    <h3>Exit code 64 — اسم غير صالح</h3>
+    <pre><code>"123app" is not a valid project name. Use lower_snake_case: start with a
+letter or underscore, then letters, digits, or underscores only
+(e.g. "user_profile", not "123abc" or "user-profile").</code></pre>
+    <p><strong>المصدر:</strong> <code>lib/src/validators/name_validator.dart</code>، دالة <code>validate</code>.</p>
+    <p><strong>الحل:</strong> استخدم <code>lower_snake_case</code> فقط: أحرف صغيرة، أرقام (غير بادئة)، وشرطة سفلية.</p>
+
+    <h3>Exit code 65 — المجلد موجود مسبقًا</h3>
+    <pre><code>A directory named "my_app" already exists in /home/user/projects.
+Choose a different name or remove it first — boltforge will not
+overwrite an existing directory.</code></pre>
+    <p><strong>المصدر:</strong> <code>lib/src/commands/create_command.dart</code>.</p>
+    <p><strong>الحل:</strong> غيّر الاسم، أو احذف المجلد القديم يدويًا بنفسك (الأداة لا تحذف تلقائيًا أبدًا).</p>
+
+    <h3>Exit code 69 — Flutter غير موجود</h3>
+    <pre><code>Flutter was not found on PATH. Install Flutter and make sure
+`flutter --version` works before running `boltforge create`.</code></pre>
+    <p><strong>المصدر:</strong> فحص <code>process.isAvailable('flutter')</code> في <code>CreateCommand</code>.</p>
+    <p><strong>الحل:</strong> ثبّت Flutter، تحقق بـ <code>flutter --version</code>، ثم شغّل <code>boltforge doctor</code> للتأكيد.</p>
+
+    <h3>Exit code 70 — "PathNotFoundException ...templates\base\*" أو "Could not locate boltforge's bundled templates/"</h3>
+    <pre><code>PathNotFoundException: Directory listing failed,
+path = C:\Users\...\boltforge\.dart_tool\pub\bin\templates\base\*
+(OS Error: The system cannot find the path specified., errno = 3)</code></pre>
+    <p>
+      <strong>السبب (خطأ حقيقي حدث فعليًا، وليس افتراضيًا):</strong> عند تفعيل الأداة
+      عالميًا عبر <code>dart pub global activate</code>، تُنشئ Dart نسخة مُصرَّفة
+      (snapshot) داخل <code>.dart_tool/pub/bin/boltforge/</code> — أعمق بمستوى واحد
+      من <code>bin/boltforge.dart</code>. الإصدار القديم من الأداة كان يفترض أن جذر
+      الحزمة يقع دائمًا مستوى واحدًا فوق مكان تشغيل السكربت، وهذا الافتراض ينهار
+      تحديدًا في هذا السيناريو — أي في <strong>الطريقة الحقيقية التي يشغّل بها
+      المستخدمون الأداة فعليًا</strong>. تم إصلاح هذا جذريًا عبر الاعتماد على
+      <code>Isolate.resolvePackageUri</code> بدل التخمين من مسار السكربت.
+    </p>
+    <p><strong>الحل:</strong> إن ظهرت هذه الرسالة رغم ذلك، تأكد أنك تستخدم إصدارًا
+      محدَّثًا من boltforge (بعد هذا الإصلاح)، ثم أعد التفعيل:
+      <code>dart pub global activate boltforge</code> (أو
+      <code>--source path .</code> أثناء التطوير)، وشغّل <code>boltforge doctor</code>.
+      إن استمرت المشكلة، فهذا يعني أن التثبيت نفسه ناقص وليس مجرد خطأ في تحديد
+      المسار — أعد تفعيل الحزمة من الصفر.</p>
+
+    <h3>توقف عند "flutter analyze"</h3>
+    <p>
+      <strong>المصدر:</strong> خطوة 6 من 7 في <code>ProjectGenerator.generate()</code>.
+      هذه بوابة التحقق الرئيسية من صحة الكود المُولَّد.
+    </p>
+    <div class="callout tip">
+      <div class="callout-title">💡 كيف تشخّص هذا بنفسك</div>
+      <p style="margin:0">
+        الأداة تطبع مخرجات <code>flutter analyze</code> كاملة عند الفشل (الحقل
+        <code>detail</code> في <code>ProjectGenerationStepResult</code>). اقرأ رسالة
+        الخطأ بعناية — غالبًا استيراد مفقود أو نوع غير متطابق في أحد ملفات
+        <code>templates/</code> إن كنت قد عدّلتها بنفسك.
+      </p>
+    </div>
+
+    <h2>أخطاء <code>boltforge generate</code></h2>
+    <h3>Exit code 65 — ليس مشروع Flutter</h3>
+    <pre><code>This command must be run inside a Flutter project.
+No pubspec.yaml found in /home/user/some_folder.</code></pre>
+    <p><strong>المصدر:</strong> <code>lib/src/services/project_detector.dart</code>.</p>
+    <p><strong>الحل:</strong> تأكد أنك داخل مجلد المشروع الجذري (حيث <code>pubspec.yaml</code>)، وليس داخل <code>lib/</code> مثلًا.</p>
+
+    <h3>رسائل مشابهة أخرى من نفس الفحص</h3>
+    <table>
+      <tr><th>الرسالة</th><th>السبب</th></tr>
+      <tr><td>"there is no lib/ directory"</td><td><code>pubspec.yaml</code> موجود لكن بلا مجلد <code>lib/</code> — مشروع غير مكتمل.</td></tr>
+      <tr><td>"does not depend on the flutter SDK"</td><td>هذا مشروع Dart عادي، ليس Flutter — <code>boltforge generate</code> مخصص لمشاريع Flutter فقط.</td></tr>
+      <tr><td>"could not be parsed"</td><td><code>pubspec.yaml</code> يحتوي YAML غير صالح — افحصه يدويًا.</td></tr>
+    </table>
+
+    <h2>مشاكل بعد التوليد (Runtime)</h2>
+    <h3>"StateError: StorageService.init() must be called..."</h3>
+    <p>
+      <strong>المصدر:</strong> <code>lib/core/utils/storage_service.dart</code>. يحدث
+      إن استُدعيت أي دالة من <code>StorageService</code> قبل <code>bootstrap()</code>.
+    </p>
+    <p><strong>الحل:</strong> تأكد أن <code>main.dart</code> ينادي <code>await bootstrap()</code> قبل <code>runApp()</code> — هذا هو السلوك الافتراضي المولَّد، فتحقق أنك لم تُعدّله بالخطأ.</p>
+
+    <h3>طلبات الشبكة تفشل دائمًا فور التشغيل</h3>
+    <p><strong>السبب الأرجح:</strong> <code>ApiConstants.baseUrl</code> ما زال فارغًا (القيمة الافتراضية).</p>
+    <p><strong>الحل:</strong> املأه في <code>lib/core/constants/api_constants.dart</code> — راجع <a href="configuration.html">صفحة الإعدادات</a>.</p>
+
+    <h3>Cubit لا يجد Repository عبر <code>sl&lt;T&gt;()</code></h3>
+    <pre><code>Bad state: GetIt: Object/factory with type OfferRepository is not registered</code></pre>
+    <p>
+      <strong>السبب:</strong> منذ إضافة <code>DiRegistrar</code>، هذا لم يعد يحدث في
+      المسار الطبيعي — <code>boltforge generate</code> يسجّل الـ Repository تلقائيًا.
+      إن رأيت هذا الخطأ فعليًا، السبب على الأرجح أحد اثنين:
+    </p>
+    <ul>
+      <li>الأمر طبع تحذير <code>DI: lib/core/di/service_locator.dart was not found</code>
+        أو <code>DI: service_locator.dart is missing the marker comments</code> — راجع
+        مخرجات <code>generate</code> بعناية، فهو يخبرك بهذا صراحة وقت التوليد.</li>
+      <li>عدّلت <code>service_locator.dart</code> يدويًا وحذفت تعليقَي
+        <code>// boltforge:imports</code> / <code>// boltforge:registrations</code> بدون
+        قصد — في هذه الحالة الأداة تتوقف عمدًا عن التعديل التلقائي بدل التخمين.</li>
+    </ul>
+    <p><strong>الحل:</strong> أضف السطر يدويًا في <code>configureDependencies()</code> —
+      الآلية الكاملة موضّحة في <a href="feature-generation.html">صفحة توليد الـ Feature</a>.</p>
+
+    <h3>"Duplicate DI registration for X found N times"</h3>
+    <p>
+      <strong>المصدر:</strong> <code>FeatureValidator</code> بعد التوليد، عندما يجد أكثر
+      من سطر <code>registerLazySingleton&lt;X&gt;</code> لنفس الصنف في
+      <code>service_locator.dart</code>. هذا خطأ حقيقي (رمز الخروج <code>1</code>)، وليس
+      تحذيرًا — لأنه يعني عادةً تعديلًا يدويًا سابقًا تعارض مع التسجيل التلقائي.
+    </p>
+    <p><strong>الحل:</strong> افتح <code>service_locator.dart</code> واحذف السطر
+      المكرَّر يدويًا، مع إبقاء تعليقَي الترسيخ سليمَين.</p>
+
+    <h2>مشاكل بناء الأداة نفسها (لمن يطوّر boltforge)</h2>
+    <table>
+      <tr><th>المشكلة</th><th>الحل</th></tr>
+      <tr><td><code>dart test</code> يفشل في العثور على <code>templates/</code></td><td>تأكد أنك تُشغّل <code>dart test</code> من جذر حزمة boltforge نفسها، وليس من مجلد فرعي.</td></tr>
+      <tr><td>تعديل قالب لا ينعكس عند التشغيل الفعلي</td><td>إن كنت تستخدم نسخة مُفعَّلة عالميًا (<code>dart pub global activate --source path .</code>)، أعد التفعيل بعد كل تعديل على <code>templates/</code>.</td></tr>
+    </table>
+
+    <h2>لم تجد مشكلتك هنا؟</h2>
+    <p>
+      اقرأ رسالة الخطأ الكاملة أولًا — كل رسالة في هذه الأداة مصمَّمة لتكون دقيقة
+      ومحدَّدة المصدر (راجع فلسفة الخطوات السبع المنفصلة في <a href="project-generation.html">صفحة إنشاء المشروع</a>).
+      إن كانت المشكلة في القوالب نفسها، راجع <a href="templates.html">صفحة نظام القوالب</a>.
+    </p>
+
+    <h2>معايير القبول لهذه الصفحة</h2>
+    <ul class="criteria-list">
+      <li>كل رسالة خطأ مذكورة هنا موجودة حرفيًا (أو بصيغة مطابقة جوهريًا) في الكود المصدري.</li>
+      <li>كل حل مقترَح تم تتبعه إلى السطر الفعلي المسؤول عن السلوك.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="testing.html"><span class="dir">السابق</span>الاختبارات</a>
+      <a class="next" href="publishing.html"><span class="dir">التالي</span>النشر على pub.dev</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

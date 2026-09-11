@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>boltforge — التوثيق الرسمي</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">التوثيق الرسمي</div>
+    <h1>boltforge</h1>
+    <p class="lede">
+      أداة CLI تُنشئ مشاريع Flutter كاملة بمعمارية Cubit + Repository + GetIt جاهزة
+      للإنتاج، وتولّد Features جديدة داخل مشروع قائم بأمر واحد.
+    </p>
+
+    <div class="callout warn">
+      <div class="callout-title">⚠ حالة المشروع الحالية</div>
+      <p style="margin:0">
+        هذا التوثيق يصف <strong>Phase 1</strong> من المشروع: الأداة نفسها، المعمارية
+        الأساسية، نظام المصادقة (Password / OTP)، مولّد الـ Features، ومجموعة اختبارات
+        حقيقية. لم يتم بعد تنفيذ <code>dart analyze</code> أو <code>dart test</code> فعليًا
+        على جهاز فيه Flutter/Dart مثبّت — راجع صفحة
+        <a href="testing.html">الاختبارات</a> لتفاصيل هذا الأمر بالضبط.
+      </p>
+    </div>
+
+    <h2>ماذا تفعل الأداة؟</h2>
+    <p>عند تشغيل:</p>
+    <pre><code>boltforge create my_app --auth=password</code></pre>
+    <p>تقوم الأداة بالتسلسل التالي:</p>
+    <ol>
+      <li>التحقق من صحة اسم المشروع.</li>
+      <li>تشغيل <code>flutter create</code>.</li>
+      <li>إضافة الحزم المطلوبة (<code>flutter_bloc</code>, <code>dio</code>, <code>get_it</code>,
+        <code>shared_preferences</code>) عبر <code>flutter pub add</code>.</li>
+      <li>تطبيق المعمارية الأساسية (طبقة <code>lib/core/</code>).</li>
+      <li>تطبيق نظام المصادقة المختار (Password أو OTP).</li>
+      <li>تشغيل <code>flutter pub get</code> ثم <code>flutter analyze</code> ثم
+        <code>flutter test</code>، والتوقف فورًا عند أول فشل حقيقي بدل ادّعاء النجاح.</li>
+    </ol>
+
+    <p>ثم لاحقًا، داخل نفس المشروع:</p>
+    <pre><code>cd my_app
+boltforge generate offer</code></pre>
+    <p>لإنشاء Feature كاملة (cubit + repository + model + screen) بأسلوب موحّد.</p>
+
+    <h2>من أين أبدأ؟</h2>
+    <ul>
+      <li><a href="getting-started.html">البدء السريع</a> — التثبيت وأول أمر تُشغّله.</li>
+      <li><a href="architecture.html">المعمارية العامة</a> — كيف تترابط الطبقات (Cubit,
+        Repository, GetIt, Dio).</li>
+      <li><a href="feature-generation.html">توليد Feature جديدة</a> — الدرس الكامل
+        المطلوب: "كيف أضيف Feature Generator جديدة؟".</li>
+    </ul>
+
+    <h2>خريطة المشروع (ملخص سريع)</h2>
+    <div class="tree">boltforge/
+├── bin/boltforge.dart              نقطة الدخول
+├── lib/src/
+│   ├── cli_runner.dart             تسجيل الأوامر الثلاثة
+│   ├── commands/                   create / generate / doctor
+│   ├── generators/                 ProjectGenerator, FeatureGenerator
+│   ├── services/                   ProcessService, FileService, ProjectDetector
+│   ├── template_engine/            محرك القوالب {{variable}} و {{#if}}
+│   ├── utils/                      NameCase, Logger
+│   └── validators/                 NameValidator
+├── templates/
+│   ├── base/                       المعمارية المطبَّقة على كل مشروع
+│   ├── auth/{password,otp}/        قالبا المصادقة
+│   └── feature/{{featureName}}/    قالب مولّد الـ Features
+├── test/                           11 ملف اختبار حقيقي
+├── docs/                           أنت هنا
+└── project-dashboard.html          مركز تحكم المشروع</div>
+
+    <div class="page-footer-nav">
+      <span></span>
+      <a class="next" href="getting-started.html"><span class="dir">التالي</span>البدء السريع</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

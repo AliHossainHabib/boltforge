@@ -1,0 +1,21 @@
+/// Backend endpoint configuration.
+///
+/// [baseUrl] is intentionally empty — wire this to your Node.js, Firebase
+/// Functions, Laravel, or Django backend before running the app. Keeping
+/// it here (rather than hardcoded in [DioClient]) is what lets this
+/// architecture stay backend-agnostic.
+class ApiConstants {
+  ApiConstants._();
+
+  static const String baseUrl = '';
+
+  // ─── Auth ───
+  static const String login = '/auth/login';
+  static const String register = '/auth/register';
+  static const String requestOtp = '/auth/otp/request';
+  static const String verifyOtp = '/auth/otp/verify';
+  static const String forgotPassword = '/auth/password/forgot';
+  static const String resetPassword = '/auth/password/reset';
+  static const String me = '/auth/me';
+  static const String logout = '/auth/logout';
+}

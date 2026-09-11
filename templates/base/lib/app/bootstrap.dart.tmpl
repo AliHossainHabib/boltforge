@@ -1,0 +1,25 @@
+import 'package:flutter/material.dart';
+
+import '../core/di/service_locator.dart';
+import '../core/network/dio_client.dart';
+import '../core/utils/storage_service.dart';
+
+/// Centralized, ordered startup sequence. Keeps `main.dart` free of
+/// initialization noise — any new cross-cutting concern (analytics,
+/// feature flags, push notifications) gets registered here, in one
+/// obvious place, in explicit order.
+///
+/// Call [bootstrap] exactly once from `main()` before `runApp`.
+Future<void> bootstrap() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Local storage (must come before DioClient, which reads the token).
+  await StorageService.init();
+
+  // Networking (Dio instance + interceptor chain).
+  DioClient.instance.init();
+
+  // Dependency container (must come after DioClient so repositories get
+  // a live Dio instance on first resolve).
+  configureDependencies();
+}

@@ -1,0 +1,48 @@
+import 'package:flutter/material.dart';
+
+import '../../theme/app_colors.dart';
+
+/// Unified error-state placeholder with an optional retry callback.
+/// [onRetry] should call back into the cubit's reload method — never
+/// perform navigation or business logic directly from here.
+class AppErrorView extends StatelessWidget {
+  final String? message;
+  final VoidCallback? onRetry;
+  final String retryLabel;
+
+  const AppErrorView({
+    super.key,
+    this.message,
+    this.onRetry,
+    this.retryLabel = 'Retry',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              message ?? 'Something went wrong.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.grey700),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text(retryLabel),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,44 @@
+import 'package:flutter/material.dart';
+
+import '../core/router/routes.dart';
+import '../core/utils/storage_service.dart';
+
+/// First screen shown on launch. Checks for a stored access token and
+/// redirects to Home if present, or into the authentication flow if not.
+/// Replace the bare token check with `AuthRepository.getCachedUser()` once
+/// the backend is wired up, if you need the full user object on launch.
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _redirect());
+  }
+
+  Future<void> _redirect() async {
+    final token = await StorageService.getToken();
+    if (!mounted) return;
+    final destination = (token != null && token.isNotEmpty)
+        ? Routes.home
+{{#if authPassword}}
+        : Routes.login;
+{{/if}}
+{{#if authOtp}}
+        : Routes.verify;
+{{/if}}
+    Navigator.of(context).pushReplacementNamed(destination);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}

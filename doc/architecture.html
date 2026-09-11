@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المعمارية العامة — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">البداية</div>
+    <h1>المعمارية العامة</h1>
+    <p class="lede">
+      يوجد نظامان معماريان منفصلان في هذا المشروع: معمارية <strong>أداة boltforge نفسها</strong>
+      (Dart CLI)، ومعمارية <strong>المشروع المُولَّد</strong> (تطبيق Flutter). هذه الصفحة
+      تشرح كليهما.
+    </p>
+
+    <h2>ماذا تفعل هذه الطبقة؟</h2>
+    <p>
+      معمارية الأداة تفصل بين: تحليل الأوامر (commands)، تنسيق العملية (generators)،
+      التعامل مع النظام الخارجي (services)، وتوليد الملفات من القوالب (template_engine).
+      هذا الفصل هو ما يجعل الكود قابلًا للاختبار بدون Flutter/Dart حقيقي مثبَّت (انظر
+      <a href="testing.html">صفحة الاختبارات</a>).
+    </p>
+
+    <h2>لماذا صُمِّمت بهذا الشكل؟</h2>
+    <p>
+      لو كانت كل أوامر <code>flutter create</code> و<code>flutter analyze</code> مكتوبة
+      مباشرة داخل <code>CreateCommand</code>، لاستحال اختبار منطق الأداة بدون تثبيت
+      Flutter فعليًا. لذلك كل استدعاء لعملية خارجية يمر عبر <code>ProcessService</code>
+      (واجهة رفيعة قابلة للاستبدال باختبار وهمي <code>FakeProcessService</code>).
+    </p>
+
+    <h2>بنية المشروع (أداة boltforge)</h2>
+    <div class="tree">lib/src/
+├── cli_runner.dart          BoltforgeRunner: يسجّل create/generate/doctor
+├── commands/
+│   ├── create_command.dart   يحوّل args → استدعاء ProjectGenerator
+│   ├── generate_command.dart يحوّل args → استدعاء FeatureGenerator
+│   └── doctor_command.dart   فحص بيئة العمل
+├── generators/
+│   ├── project_generator.dart  تنسيق 7 خطوات إنشاء المشروع
+│   └── feature_generator.dart  تنسيق توليد Feature واحدة
+├── services/
+│   ├── process_service.dart    تشغيل أوامر flutter/dart الخارجية
+│   ├── file_service.dart       كتابة شجرة القالب على القرص
+│   └── project_detector.dart   التحقق أننا داخل مشروع Flutter فعلي
+├── template_engine/
+│   ├── template_engine.dart    {{variable}} و {{#if flag}}
+│   └── template_context.dart   القيم المُمرَّرة للقالب
+├── utils/
+│   ├── case_converter.dart     NameCase: snake/Pascal/camel/kebab
+│   └── logger.dart             طباعة ملوّنة بأسلوب موحّد
+└── validators/
+    └── name_validator.dart     lower_snake_case + كلمات Dart المحجوزة</div>
+
+    <h2>كيف تتفاعل هذه الملفات؟ (تدفّق create)</h2>
+    <p>مثال حقيقي من <code>lib/src/generators/project_generator.dart</code>:</p>
+    <div class="filename-tag">lib/src/generators/project_generator.dart</div>
+    <pre><code>Future&lt;List&lt;ProjectGenerationStepResult&gt;&gt; generate({
+  required String projectName,
+  required String orgIdentifier,
+  required bool usesPassword,
+  required Directory parentDirectory,
+  required bool runAnalyzeAndTest,
+}) async {
+  // 1. flutter create
+  final createOutcome = await process.run('flutter', ['create', ...]);
+  if (!createOutcome.succeeded) return results; // توقف فوري
+
+  // 2. flutter pub add flutter_bloc bloc dio get_it shared_preferences
+  // 3. تطبيق templates/base عبر FileService
+  // 4. تطبيق templates/auth/{password|otp} عبر FileService
+  // 5. flutter pub get
+  // 6. flutter analyze  ← بوابة التحقق من صحة الـ imports
+  // 7. flutter test
+}</code></pre>
+    <p>
+      كل خطوة تُرجع <code>ProjectGenerationStepResult</code> بدل رمي استثناء — هذا يسمح
+      لـ <code>CreateCommand</code> بطباعة تقرير دقيق بدل شاشة أخطاء عشوائية.
+    </p>
+
+    <h2>معمارية المشروع المُولَّد (Flutter app)</h2>
+    <div class="tree">lib/
+├── main.dart                نقطة الدخول: bootstrap() ثم runApp(MyApp())
+├── app/
+│   ├── app.dart              MaterialApp + الثيم + الراوتر
+│   ├── bootstrap.dart        تسلسل الإقلاع: Storage → Dio → DI
+│   ├── splash_screen.dart    يفحص التوكن المخزَّن ويوجّه المستخدم
+│   └── home_screen.dart      شاشة بعد تسجيل الدخول (مبدئية)
+├── core/
+│   ├── constants/            ApiConstants (نقاط النهاية), AppConstants
+│   ├── network/               ApiResult&lt;T&gt;, ApiError, DioClient + المعترضات
+│   ├── di/service_locator.dart  GetIt: تسجيل الـ Repositories فقط
+│   ├── router/                Routes (الثوابت) + AppRouter (onGenerateRoute)
+│   ├── theme/                  AppColors, AppTheme
+│   ├── ui/feedback/            AppLoadingView / AppErrorView / AppEmptyView
+│   └── widgets/                CustomButton, CustomTextField
+└── features/
+    ├── auth/                   مُولَّدة حسب اختيار --auth (password أو otp)
+    │   ├── cubit/, repository/, model/, presentation/screen/
+    └── &lt;feature&gt;/             كل Feature تُولَّد عبر `boltforge generate`
+        ├── cubit/, repository/, model/
+        └── presentation/{screen/, widgets/}</div>
+
+    <h2>القاعدة الذهبية: من يُسجَّل في GetIt؟</h2>
+    <div class="callout tip">
+      <div class="callout-title">💡 قاعدة معمارية صارمة</div>
+      <p style="margin:0">
+        فقط الـ <strong>Repositories</strong> تُسجَّل في <code>sl</code> (GetIt) كـ
+        lazy singleton. الـ <strong>Cubits</strong> لا تُسجَّل أبدًا — تُنشأ محليًا
+        داخل كل شاشة عبر <code>BlocProvider(create: (_) =&gt; XxxCubit(sl()))</code>.
+        هذا موجود في تعليق داخل <code>service_locator.dart.tmpl</code> نفسه.
+      </p>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-title">💡 هذا التسجيل يحدث تلقائيًا الآن</div>
+      <p style="margin:0">
+        منذ إضافة <code>DiRegistrar</code>، عند تشغيل <code>boltforge generate offer</code>
+        تُضاف <code>import</code> الـ Repository الجديدة وسطر
+        <code>sl.registerLazySingleton&lt;OfferRepository&gt;(...)</code> تلقائيًا إلى
+        <code>service_locator.dart</code> — بدون أي تعديل يدوي. التفاصيل الكاملة (كيف
+        تعمل الآلية، وماذا يحدث إن كان الملف معدَّلًا يدويًا) في
+        <a href="feature-generation.html">صفحة توليد الـ Feature</a>.
+      </p>
+    </div>
+
+    <h2>كيف تُعدّل هذه المعمارية؟</h2>
+    <ul>
+      <li>لإضافة تبعية جديدة لكل مشروع مُولَّد: عدّل قائمة <code>requiredPackages</code>
+        في <code>project_generator.dart</code>.</li>
+      <li>لتغيير شكل الأخطاء القادمة من الـ API: عدّل <code>ApiError</code> في
+        <code>templates/base/lib/core/network/api_error.dart.tmpl</code>.</li>
+      <li>لإضافة معترض Dio جديد (Interceptor): أنشئ ملفًا جديدًا بجانب
+        <code>token_interceptor.dart.tmpl</code> وأضفه في <code>dio_client.dart.tmpl</code>.</li>
+      <li>لتغيير آلية التسجيل التلقائي في GetIt: عدّل <code>lib/src/services/di_registrar.dart</code>
+        (تعتمد على تعليقَي الترسيخ <code>// boltforge:imports</code> و<code>// boltforge:registrations</code>
+        الموجودَين في <code>service_locator.dart.tmpl</code> — لا تحذفهما).</li>
+    </ul>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>لماذا يحدث</th></tr>
+      <tr><td>تسجيل Cubit داخل service_locator</td><td>يكسر مبدأ إنشاء Cubit لكل شاشة، ويسبب تسرّب حالة بين الشاشات.</td></tr>
+      <tr><td>استدعاء <code>sl()</code> داخل <code>build()</code> مباشرة</td><td>يجب استدعاؤه داخل <code>BlocProvider.create</code> فقط، وليس أثناء إعادة البناء.</td></tr>
+      <tr><td>حذف تعليقَي <code>// boltforge:imports</code>/<code>// boltforge:registrations</code> يدويًا</td><td>يوقف التسجيل التلقائي بالكامل لأي Feature قادمة — الأداة سترصد غيابهما وتحذّرك بدل التخمين بمكان الإدراج.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li>لا يوجد أي Cubit مسجَّل داخل <code>configureDependencies()</code>.</li>
+      <li>كل Repository في <code>lib/features/*/repository/</code>
+        يستخدم <code>DioClient.instance.dio</code> فقط، ولا يبني عميل Dio خاصًا به.</li>
+      <li>كل خطأ شبكة يمر عبر <code>ApiError.fromDio</code> ولا يصل كـ <code>DioException</code> خام إلى الواجهة.</li>
+      <li>كل Repository مولَّدة عبر <code>generate</code> مسجَّلة في <code>service_locator.dart</code> مرة واحدة بالضبط.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="getting-started.html"><span class="dir">السابق</span>البدء السريع</a>
+      <a class="next" href="cli.html"><span class="dir">التالي</span>أوامر الـ CLI</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+part of '{{featureName}}_cubit.dart';
+
+@immutable
+sealed class {{featureNamePascal}}State {
+  const {{featureNamePascal}}State();
+}
+
+class {{featureNamePascal}}Initial extends {{featureNamePascal}}State {
+  const {{featureNamePascal}}Initial();
+}
+
+class {{featureNamePascal}}Loading extends {{featureNamePascal}}State {
+  const {{featureNamePascal}}Loading();
+}
+
+class {{featureNamePascal}}Loaded extends {{featureNamePascal}}State {
+  final List<{{featureNamePascal}}Model> items;
+  const {{featureNamePascal}}Loaded(this.items);
+}
+
+class {{featureNamePascal}}Empty extends {{featureNamePascal}}State {
+  const {{featureNamePascal}}Empty();
+}
+
+class {{featureNamePascal}}Error extends {{featureNamePascal}}State {
+  final ApiError error;
+  const {{featureNamePascal}}Error(this.error);
+}

@@ -1,0 +1,20 @@
+# Files and directories created by pub.
+.dart_tool/
+.packages
+build/
+
+# pubspec.lock is intentionally excluded here because boltforge is a
+# published *package* (a CLI tool consumers install), not an application —
+# per Dart's own convention, packages shouldn't pin their dependents to a
+# single locked resolution. See https://dart.dev/tools/pub/glossary#lockfile
+pubspec.lock
+
+# Conventional excludes
+.DS_Store
+*.log
+doc/api/
+
+# IDE
+.idea/
+*.iml
+.vscode/

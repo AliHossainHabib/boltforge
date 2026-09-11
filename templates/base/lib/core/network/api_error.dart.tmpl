@@ -1,0 +1,115 @@
+import 'package:dio/dio.dart';
+
+/// Standardized API error contract surfaced from the network layer to
+/// cubits. Every repository method that can fail returns this via
+/// [ApiResult.failure] instead of letting a raw [DioException] escape.
+class ApiError {
+  /// Stable code (HTTP status, backend code, or local symbol like 'no_internet').
+  final String code;
+
+  /// Localization key (e.g. 'err_network_timeout') for the UI to translate.
+  final String messageKey;
+
+  /// Already-localized message if the backend returned a translated string.
+  final String? localizedMessage;
+
+  /// Optional structured details (validation errors, missing fields, etc.).
+  final Map<String, dynamic>? details;
+
+  /// HTTP status code, if applicable.
+  final int? statusCode;
+
+  const ApiError({
+    required this.code,
+    required this.messageKey,
+    this.localizedMessage,
+    this.details,
+    this.statusCode,
+  });
+
+  factory ApiError.fromDio(DioException e) {
+    final status = e.response?.statusCode;
+    final data = e.response?.data;
+    Map<String, dynamic>? details;
+    String? backendMessage;
+
+    if (data is Map<String, dynamic>) {
+      backendMessage = data['message']?.toString();
+      final rawDetails = data['data'];
+      details = rawDetails is Map<String, dynamic>
+          ? Map<String, dynamic>.from(rawDetails)
+          : null;
+    }
+
+    final String code;
+    final String messageKey;
+
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
+        code = 'timeout';
+        messageKey = 'err_network_timeout';
+        break;
+      case DioExceptionType.connectionError:
+        code = 'no_internet';
+        messageKey = 'err_no_internet';
+        break;
+      case DioExceptionType.cancel:
+        code = 'cancelled';
+        messageKey = 'err_cancelled';
+        break;
+      case DioExceptionType.badResponse:
+        code = (status ?? 0).toString();
+        messageKey = _mapStatusToKey(status);
+        break;
+      case DioExceptionType.badCertificate:
+      case DioExceptionType.unknown:
+        code = 'unknown';
+        messageKey = 'err_unknown';
+        break;
+    }
+
+    return ApiError(
+      code: code,
+      messageKey: messageKey,
+      localizedMessage: backendMessage,
+      details: details,
+      statusCode: status,
+    );
+  }
+
+  factory ApiError.fromException(Object e) {
+    return ApiError(
+      code: 'unknown',
+      messageKey: 'err_unknown',
+      localizedMessage: e.toString(),
+    );
+  }
+
+  static String _mapStatusToKey(int? status) {
+    switch (status) {
+      case 400:
+      case 422:
+        return 'err_validation';
+      case 401:
+        return 'err_unauthorized';
+      case 403:
+        return 'err_forbidden';
+      case 404:
+        return 'err_not_found';
+      case 409:
+        return 'err_conflict';
+      case 429:
+        return 'err_rate_limited';
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return 'err_server';
+      default:
+        return 'err_unknown';
+    }
+  }
+}

@@ -1,0 +1,51 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+import '../constants/api_constants.dart';
+import 'error_mapper_interceptor.dart';
+import 'retry_interceptor.dart';
+import 'token_interceptor.dart';
+
+/// Singleton Dio client with the canonical interceptor chain:
+/// Token (auth) -> Retry (idempotent, backoff) -> ErrorMapper -> Log.
+///
+/// Call [DioClient.instance.init] once from `bootstrap.dart` before any
+/// repository is resolved from the service locator.
+class DioClient {
+  DioClient._();
+  static final DioClient instance = DioClient._();
+
+  late final Dio dio;
+  bool _initialized = false;
+
+  void init() {
+    if (_initialized) return;
+
+    dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    dio.interceptors.addAll([
+      TokenInterceptor(),
+      RetryInterceptor(dio),
+      ErrorMapperInterceptor(),
+      if (kDebugMode)
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          logPrint: (obj) => debugPrint(obj.toString()),
+        ),
+    ]);
+
+    _initialized = true;
+  }
+}

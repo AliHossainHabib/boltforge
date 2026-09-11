@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام القوالب — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">التخصيص</div>
+    <h1>نظام القوالب (Template Engine)</h1>
+    <p class="lede">مرجع كامل لصياغة القوالب: المتغيرات، الشروط، وأسماء الملفات الديناميكية.</p>
+
+    <h2>ماذا يفعل محرك القوالب؟</h2>
+    <p>
+      يحوّل أي نص (محتوى ملف، أو حتى اسم ملف/مجلد) يحتوي على صياغة خاصة إلى نص نهائي،
+      اعتمادًا على <code>TemplateContext</code> (متغيرات + أعلام) المُمرَّر له. الكود
+      كاملًا في ملفين فقط: <code>lib/src/template_engine/template_engine.dart</code>
+      و<code>template_context.dart</code>.
+    </p>
+
+    <h2>لماذا محرك بسيط مكتوب يدويًا بدل حزمة templating جاهزة (مثل Mustache)؟</h2>
+    <p>
+      لأن الحاجة الفعلية محدودة جدًا: استبدال متغير، وتضمين/استبعاد كتلة شرطية.
+      لا حاجة لحلقات (loops) أو Partials أو منطق معقّد. اعتماد حزمة خارجية كاملة
+      لهذا القدر البسيط من الوظائف يزيد التبعيات دون فائدة حقيقية.
+    </p>
+
+    <h2>الصياغة المدعومة بالكامل</h2>
+    <table>
+      <tr><th>الصياغة</th><th>المعنى</th></tr>
+      <tr><td><code>{{variableName}}</code></td><td>استبدال بقيمة نصية من <code>context.variables</code></td></tr>
+      <tr><td><code>{{ variableName }}</code></td><td>نفس الشيء — المسافات داخل الأقواس مسموحة ويتم تجاهلها</td></tr>
+      <tr><td><code>{{#if flagName}}...{{/if}}</code></td><td>يبقى المحتوى فقط إذا كانت قيمة العلم <code>true</code></td></tr>
+      <tr><td><code>{{#unless flagName}}...{{/unless}}</code></td><td>يبقى المحتوى فقط إذا كانت قيمة العلم <code>false</code></td></tr>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">⚠ متغير أو علم غير معروف = خطأ فوري، وليس نصًا فارغًا</div>
+      <p style="margin:0">
+        استخدام <code>{{typo}}</code> أو <code>{{#if nonExistentFlag}}</code> يرمي
+        <code>TemplateVariableError</code> ويوقف التوليد بالكامل. هذا قرار مقصود:
+        متغير مفقود بصمت يعني كودًا فاسدًا يظهر لاحقًا بشكل غامض في <code>flutter analyze</code>
+        بدل رسالة واضحة الآن.
+      </p>
+    </div>
+
+    <h2>أسماء الملفات والمجلدات الديناميكية</h2>
+    <p>
+      الصياغة نفسها تعمل داخل مسار الملف أيضًا، عبر <code>renderPathSegment</code>
+      الذي يُطبَّق على كل جزء من المسار على حدة، ثم يحذف لاحقة <code>.tmpl</code>
+      إن وُجدت:
+    </p>
+    <div class="filename-tag">lib/src/template_engine/template_engine.dart</div>
+    <pre><code>String renderPathSegment(String segment) {
+  final rendered = render(segment);
+  return rendered.endsWith('.tmpl')
+      ? rendered.substring(0, rendered.length - '.tmpl'.length)
+      : rendered;
+}</code></pre>
+    <p>مثال: <code>{{featureName}}_model.dart.tmpl</code> ← بعد التوليد باسم <code>offer</code> ← <code>offer_model.dart</code>.</p>
+
+    <h2>القوالب الثلاثة الموجودة حاليًا</h2>
+    <table>
+      <tr><th>المجلد</th><th>يُطبَّق متى؟</th><th>الوجهة</th></tr>
+      <tr><td><code>templates/base/</code></td><td>دائمًا، عند كل <code>create</code></td><td>جذر المشروع الجديد</td></tr>
+      <tr><td><code>templates/auth/password/</code></td><td><code>--auth=password</code></td><td>جذر المشروع الجديد</td></tr>
+      <tr><td><code>templates/auth/otp/</code></td><td><code>--auth=otp</code></td><td>جذر المشروع الجديد</td></tr>
+      <tr><td><code>templates/feature/{{featureName}}/</code></td><td>كل <code>boltforge generate</code></td><td><code>lib/features/</code> داخل مشروع قائم</td></tr>
+    </table>
+    <p>
+      بعد كتابة الملفات، يستدعي <code>FeatureGenerator</code> خطوتين إضافيتين غير
+      متعلقتين بمحرك القوالب مباشرة لكنهما جزء من نفس خط الأنابيب:
+      <code>DiRegistrar</code> (تسجيل تلقائي في <code>service_locator.dart</code>) و
+      <code>FeatureValidator</code> (تحقق بعد التوليد). التفاصيل الكاملة في
+      <a href="feature-generation.html">صفحة توليد الـ Feature</a>.
+    </p>
+
+    <h2>من أين تُقرأ هذه المجلدات فعليًا؟</h2>
+    <div class="callout warn">
+      <div class="callout-title">⚠ هذا الجزء كان فيه خطأ حقيقي — وقد أُصلح</div>
+      <p style="margin:0">
+        الإصدار الأول من هذا الحل افترض أن مجلد <code>templates/</code> يقع دائمًا
+        مستوى واحدًا فوق مكان تشغيل السكربت (<code>bin/boltforge.dart</code>). هذا
+        الافتراض انهار تحديدًا عند تفعيل الأداة عالميًا (<code>dart pub global
+        activate</code>)، لأن Dart تُنشئ نسخة مُصرَّفة (snapshot) في
+        <code>.dart_tool/pub/bin/boltforge/</code> — أعمق بمستوى واحد إضافي —
+        فكان الحل القديم يحسب مسارًا غير موجود مثل
+        <code>...\.dart_tool\pub\bin\templates\base</code> ويفشل بخطأ
+        <code>PathNotFoundException</code> حقيقي عند أول استخدام فعلي خارج المستودع.
+      </p>
+    </div>
+    <p>
+      الحل الصحيح يعتمد على <code>Isolate.resolvePackageUri</code> — الآلية نفسها
+      التي تستخدمها Dart داخليًا لتحويل أي <code>import 'package:boltforge/...'</code>
+      إلى مسار ملف حقيقي. بما أن كل استيراد في هذا البرنامج يعتمد أصلًا على نجاح هذا
+      التحليل، فإن استخدامه لإيجاد جذر الحزمة نفسه يعمل بشكل صحيح في كل سيناريوهات
+      التشغيل: من الكود المصدري، من نسخة snapshot مؤقَّتة (حالة
+      <code>pub global activate</code> التي انكسرت)، أو من حزمة مثبَّتة فعليًا من
+      pub.dev لاحقًا.
+    </p>
+    <div class="filename-tag">lib/src/core/package_paths.dart</div>
+    <pre><code>static Future&lt;Directory?&gt; resolveTemplatesRoot() async {
+  final root = await _resolvePackageRoot();
+  if (root == null) return null;
+  final templates = Directory(p.join(root.path, 'templates'));
+  return templates.existsSync() ? templates : null;
+}
+
+static Future&lt;Directory?&gt; _resolveViaPackageConfig() async {
+  final libUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:boltforge/boltforge.dart'),
+  );
+  // package:boltforge/boltforge.dart -&gt; &lt;root&gt;/lib/boltforge.dart
+  final libDir = Directory(p.dirname(libUri!.toFilePath()));
+  final root = Directory(p.normalize(p.join(libDir.path, '..')));
+  return Directory(p.join(root.path, 'templates')).existsSync() ? root : null;
+}</code></pre>
+    <p>
+      المسار القديم المبني على <code>Platform.script</code> ما زال موجودًا، لكن فقط
+      كخطة احتياطية أخيرة — ولا يُعتمَد عليه أبدًا إلا بعد التحقق فعليًا أن
+      <code>templates/</code> موجود عند المسار المُخمَّن، لا افتراضًا أعمى كما كان سابقًا.
+    </p>
+    <div class="callout tip">
+      <div class="callout-title">💡 للاختبارات</div>
+      <p style="margin:0">
+        كل من <code>ProjectGenerator</code> و<code>FeatureGenerator</code> يتطلبان
+        الآن <code>templatesRoot</code> كمعامل إجباري (وليس اختياريًا بقيمة
+        افتراضية داخلية) — القرار بشأن تحديد المسار أصبح بالكامل مسؤولية المستدعي.
+        <code>CreateCommand</code> و<code>GenerateCommand</code> يحلّان المسار
+        فعليًا عبر <code>await PackagePaths.resolveTemplatesRoot()</code> قبل بناء
+        المُولِّد، بينما الاختبارات تُمرِّر مجلدًا معروفًا مباشرة (نفس مسار البناء
+        الذي يستخدمه الإنتاج تمامًا، دون الحاجة لتزييف أي شيء). راجع
+        <a href="testing.html">صفحة الاختبارات</a> و<code>test/package_paths_test.dart</code>.
+      </p>
+    </div>
+
+    <h2>كيف تُضيف قالبًا جديدًا بالكامل؟</h2>
+    <ol>
+      <li>أنشئ مجلدًا جديدًا تحت <code>templates/</code> (مثلًا <code>templates/base-v2/</code>).</li>
+      <li>ضع بداخله بنية <code>lib/...</code> كاملة تمامًا كما ستظهر في المشروع النهائي.</li>
+      <li>أي جزء متغيّر في المحتوى أو الاسم استخدم فيه <code>{{variableName}}</code>.</li>
+      <li>أضف أي متغير جديد تحتاجه في <code>TemplateContext.forProject</code> أو
+        <code>forFeature</code> حسب السياق.</li>
+      <li>اربط القالب الجديد من <code>ProjectGenerator</code> أو <code>FeatureGenerator</code>
+        (استبدل أو أضف بجانب <code>templateFor('base')</code> الحالية).</li>
+    </ol>
+
+    <h2>كيف تختبر قالبًا جديدًا؟</h2>
+    <p>
+      لا تحتاج لتشغيل <code>flutter create</code> فعليًا لاختبار محتوى القالب — استخدم
+      <code>FileService</code> و<code>TemplateEngine</code> مباشرة على مجلد مؤقت، كما
+      يفعل <code>test/auth_generation_test.dart</code> بالضبط:
+    </p>
+    <pre><code>final engine = TemplateEngine(TemplateContext.forProject(
+  projectName: 'my_app', orgIdentifier: 'com.example', usesPassword: true,
+));
+FileService(engine).renderTree(
+  templateRoot: Directory('templates/base-v2'),
+  destinationRoot: tempProjectDir,
+  onConflict: ConflictAction.overwrite,
+);
+// ثم تحقق من محتوى الملفات الناتجة مباشرة</code></pre>
+
+    <h2>أخطاء شائعة</h2>
+    <table>
+      <tr><th>الخطأ</th><th>السبب</th></tr>
+      <tr><td>ملف يظهر باسمه الحرفي <code>xxx.dart.tmpl</code> على القرص</td><td>لم يُستخدم <code>renderPathSegment</code> عند الكتابة — تحقق أنك تستخدم <code>FileService.renderTree</code> وليس نسخًا يدويًا.</td></tr>
+      <tr><td>خطأ <code>TemplateVariableError</code> عند التوليد</td><td>استخدمت <code>{{اسم_خاطئ}}</code> غير معرَّف في <code>TemplateContext</code> المستخدَم لهذا القالب تحديدًا (فرّق بين سياق Project وسياق Feature).</td></tr>
+      <tr><td>كتلة <code>{{#if}}</code> تظهر حرفيًا في الناتج النهائي</td><td>على الأغلب خطأ إملائي في اسم الوسم (<code>#lf</code> بدل <code>#if</code> مثلًا) — المحرك لا يتعرف عليه فيتركه كنص عادي فقط إن لم يُحلَّل كـ variable أيضًا؛ تحقق من الاسم بدقة.</td></tr>
+    </table>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li>لا يوجد أي ملف بامتداد <code>.tmpl</code> يظهر في مشروع مُولَّد نهائيًا.</li>
+      <li>لا يوجد أي نص <code>{{...}}</code> غير مُستبدَل في أي ملف مُولَّد.</li>
+      <li>كل متغير مُستخدَم في قالب مُعرَّف فعليًا في <code>TemplateContext</code> المطابق قبل الاستخدام.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="feature-generation.html"><span class="dir">السابق</span>توليد Feature</a>
+      <a class="next" href="configuration.html"><span class="dir">التالي</span>الإعدادات</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>

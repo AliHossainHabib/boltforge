@@ -1,0 +1,52 @@
+import 'package:flutter/material.dart';
+
+import '../../app/home_screen.dart';
+import '../../app/splash_screen.dart';
+{{#if authPassword}}
+import '../../features/auth/presentation/screen/login_screen.dart';
+{{/if}}
+{{#if authOtp}}
+import '../../features/auth/presentation/screen/verification_screen.dart';
+{{/if}}
+import 'routes.dart';
+
+/// Classic [Navigator] 1.0 route table. Kept dependency-free (no
+/// go_router/auto_route) so the generated project has one fewer package
+/// to reconcile versions for — swap this in for a router package later
+/// if the app needs deep linking.
+class AppRouter {
+  AppRouter._();
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case Routes.splash:
+        return _fade(const SplashScreen());
+      case Routes.home:
+        return _fade(const HomeScreen());
+{{#if authPassword}}
+      case Routes.login:
+        return _fade(const LoginScreen());
+{{/if}}
+{{#if authOtp}}
+      case Routes.verify:
+        return _fade(const VerificationScreen());
+{{/if}}
+      default:
+        return _fade(
+          Scaffold(
+            body: Center(child: Text('No route defined for ${settings.name}')),
+          ),
+        );
+    }
+  }
+
+  static PageRouteBuilder _fade(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
+  }
+}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أوامر الـ CLI — توثيق boltforge</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="topbar-mobile">
+  <button id="mobile-menu-btn">☰ القائمة</button>
+  <strong>boltforge</strong>
+</div>
+<div class="layout">
+  <main class="main">
+    <div class="eyebrow">الأداة</div>
+    <h1>أوامر الـ CLI</h1>
+    <p class="lede">مرجع كامل لكل أمر، كل خيار، وكل رمز خروج (exit code).</p>
+
+    <h2>ماذا تفعل هذه الطبقة؟</h2>
+    <p>
+      <code>lib/src/cli_runner.dart</code> يبني <code>BoltforgeRunner extends CommandRunner&lt;int&gt;</code>
+      من حزمة <code>package:args</code>، ويسجّل ثلاثة أوامر: <code>create</code>،
+      <code>generate</code> (له اسمان بديلان: <code>g</code> و<code>feature</code>)،
+      و<code>doctor</code>.
+    </p>
+
+    <h2>لماذا package:args تحديدًا؟</h2>
+    <p>
+      لأنها الحزمة الرسمية من فريق Dart لبناء أدوات CLI بأسلوب Git/Flutter (أوامر فرعية
+      + خيارات + مساعدة تلقائية + <code>UsageException</code> عند خيار غير صالح)، بدل
+      كتابة محلّل args يدوي عرضة للأخطاء.
+    </p>
+
+    <h2>الأمر: <code>boltforge create</code></h2>
+    <div class="filename-tag">lib/src/commands/create_command.dart</div>
+    <pre><code>boltforge create &lt;name&gt; [--auth=password|otp] [--org=com.example] [--skip-validation]</code></pre>
+    <table>
+      <tr><th>الخيار</th><th>الوصف</th><th>افتراضي</th></tr>
+      <tr><td><code>--auth</code></td><td>password أو otp. إن غاب، تسأل الأداة تفاعليًا.</td><td>—</td></tr>
+      <tr><td><code>--org</code></td><td>معرّف المؤسسة العكسي المُمرَّر إلى <code>flutter create --org</code>.</td><td><code>com.example</code></td></tr>
+      <tr><td><code>--skip-validation</code></td><td>تخطي <code>flutter analyze</code> و<code>flutter test</code> بعد التوليد.</td><td>false</td></tr>
+    </table>
+
+    <h3>رموز الخروج (Exit Codes)</h3>
+    <table>
+      <tr><th>الكود</th><th>المعنى</th><th>مصدره في الكود</th></tr>
+      <tr><td><code>0</code></td><td>نجاح كامل</td><td>كل خطوات <code>ProjectGenerator</code> نجحت</td></tr>
+      <tr><td><code>1</code></td><td>فشلت إحدى خطوات التوليد بعد بدئه</td><td>أي <code>ProjectGenerationStepResult.succeeded == false</code></td></tr>
+      <tr><td><code>64</code></td><td>اسم مفقود أو غير صالح</td><td>فحص فارغ أو <code>NameValidator</code></td></tr>
+      <tr><td><code>65</code></td><td>المجلد الهدف موجود مسبقًا</td><td>فحص <code>targetDir.existsSync()</code></td></tr>
+      <tr><td><code>69</code></td><td>Flutter غير متاح في PATH</td><td>فحص <code>process.isAvailable('flutter')</code></td></tr>
+      <tr><td><code>70</code></td><td>تعذّر تحديد مكان مجلد <code>templates/</code> المرفق مع الحزمة (تثبيت تالف أو غير مكتمل)</td><td><code>PackagePaths.resolveTemplatesRoot()</code> أرجعت <code>null</code></td></tr>
+    </table>
+
+    <h2>الأمر: <code>boltforge generate</code></h2>
+    <div class="filename-tag">lib/src/commands/generate_command.dart</div>
+    <pre><code>boltforge generate &lt;feature_name&gt;
+# أو: boltforge g &lt;feature_name&gt;
+# أو: boltforge feature &lt;feature_name&gt;</code></pre>
+    <p>يجب تشغيله من داخل جذر مشروع Flutter (حيث يوجد <code>pubspec.yaml</code> و<code>lib/</code>).</p>
+    <p>
+      يولّد الملفات تحت <code>lib/features/&lt;name&gt;/</code>، ثم يسجّل الـ Repository
+      تلقائيًا في <code>lib/core/di/service_locator.dart</code>، ثم يتحقق من النتيجة —
+      التفاصيل الكاملة في <a href="feature-generation.html">صفحة توليد الـ Feature</a>.
+    </p>
+    <table>
+      <tr><th>الكود</th><th>المعنى</th></tr>
+      <tr><td><code>0</code></td><td>تم التوليد بنجاح (حتى لو طُبعت تحذيرات DI)، أو تم الإلغاء بواسطة المستخدم (Cancel)</td></tr>
+      <tr><td><code>1</code></td><td>تحقق ما بعد التوليد وجد خطأ حقيقيًا (تسجيل DI مكرَّر، ملف ناقص، placeholder غير محلول)</td></tr>
+      <tr><td><code>64</code></td><td>اسم Feature مفقود أو غير صالح</td></tr>
+      <tr><td><code>65</code></td><td>الأمر لم يُشغَّل داخل مشروع Flutter فعلي</td></tr>
+      <tr><td><code>70</code></td><td>تعذّر تحديد مكان مجلد <code>templates/</code> المرفق مع الحزمة</td></tr>
+    </table>
+
+    <h3>سلوك التعارض (Feature موجودة مسبقًا)</h3>
+    <pre><code>Feature "offer" already exists.
+
+  [1] Cancel
+  [2] Overwrite existing files
+  [3] Merge — only write files that do not exist yet
+&gt;</code></pre>
+    <p>راجع <a href="feature-generation.html">صفحة توليد الـ Features</a> لشرح كامل لكل خيار.</p>
+
+    <h2>الأمر: <code>boltforge doctor</code></h2>
+    <div class="filename-tag">lib/src/commands/doctor_command.dart</div>
+    <pre><code>boltforge doctor</code></pre>
+    <p>يفحص توفّر Dart وFlutter عبر <code>flutter --version</code> و<code>dart --version</code>
+      فعليًا (وليس افتراضًا)، ويطبع رقم إصدار boltforge نفسه.</p>
+
+    <h2>كيف تتفاعل هذه الأوامر مع بعضها؟</h2>
+    <p>
+      كل أمر (<code>Command&lt;int&gt;</code>) هو غلاف رفيع: يتحقق من المدخلات، ثم يفوّض
+      كل العمل الحقيقي لكائن <code>Generator</code> مقابل (<code>ProjectGenerator</code> أو
+      <code>FeatureGenerator</code>). لا يوجد منطق توليد ملفات داخل ملفات <code>commands/</code>
+      نفسها — وهذا مقصود لجعل الأوامر قابلة للاختبار بحقن كائنات وهمية (راجع
+      <a href="testing.html">صفحة الاختبارات</a>).
+    </p>
+
+    <h2>كيف تُضيف أمرًا جديدًا؟</h2>
+    <ol>
+      <li>أنشئ <code>lib/src/commands/my_command.dart</code> يمدّ <code>Command&lt;int&gt;</code>.</li>
+      <li>عرّف <code>name</code> و<code>description</code>، وأضف الخيارات في المُنشئ عبر
+        <code>argParser.addOption(...)</code>.</li>
+      <li>اجعل كل تبعية خارجية (ملفات، عمليات) قابلة للحقن عبر مُنشئ اختياري، تمامًا
+        كما فعلنا مع <code>process</code> و<code>workingDirectory</code> في
+        <code>CreateCommand</code>.</li>
+      <li>سجّله في <code>lib/src/cli_runner.dart</code> عبر <code>addCommand(MyCommand())</code>.</li>
+      <li>اكتب اختبارًا في <code>test/cli_commands_test.dart</code> يستدعيه عبر
+        <code>CommandRunner&lt;int&gt;</code> مباشرة (بدون Process حقيقي).</li>
+    </ol>
+
+    <h2>أخطاء شائعة</h2>
+    <div class="callout error">
+      <div class="callout-title">✖ خطأ شائع</div>
+      <p style="margin:0">
+        استدعاء <code>ProcessService()</code> مباشرة داخل جسم الأمر بدل جعله معاملًا
+        قابلًا للحقن — هذا يمنع كتابة أي اختبار موثوق للأمر لاحقًا. جميع أوامر
+        boltforge الحالية تتفادى هذا (راجع الحقل <code>process</code> في
+        <code>CreateCommand</code>).
+      </p>
+    </div>
+
+    <h2>معايير القبول</h2>
+    <ul class="criteria-list">
+      <li><code>boltforge --help</code> يعرض الأوامر الثلاثة بوصفها الصحيح.</li>
+      <li><code>boltforge create</code> بدون اسم يُرجع الكود <code>64</code> برسالة واضحة.</li>
+      <li><code>boltforge generate offer</code> خارج مشروع Flutter يُرجع الكود <code>65</code>.</li>
+    </ul>
+
+    <div class="page-footer-nav">
+      <a class="prev" href="architecture.html"><span class="dir">السابق</span>المعمارية العامة</a>
+      <a class="next" href="project-generation.html"><span class="dir">التالي</span>إنشاء مشروع</a>
+    </div>
+  </main>
+  <nav class="sidebar" id="sidebar-mount"></nav>
+</div>
+<script src="assets/nav.js" defer></script>
+</body>
+</html>
