@@ -163,20 +163,20 @@
   ];
 
   var DOC_PAGES = [
-    { num: "01", href: "docs/index.html", title: "الصفحة الرئيسية" },
-    { num: "02", href: "docs/getting-started.html", title: "البدء السريع" },
-    { num: "03", href: "docs/architecture.html", title: "المعمارية العامة" },
-    { num: "04", href: "docs/cli.html", title: "أوامر الـ CLI" },
-    { num: "05", href: "docs/project-generation.html", title: "إنشاء مشروع (create)" },
-    { num: "06", href: "docs/authentication.html", title: "أنظمة تسجيل الدخول" },
-    { num: "07", href: "docs/feature-generation.html", title: "توليد Feature (الدرس الكامل)" },
-    { num: "08", href: "docs/templates.html", title: "نظام القوالب" },
-    { num: "09", href: "docs/configuration.html", title: "الإعدادات" },
-    { num: "10", href: "docs/testing.html", title: "الاختبارات" },
-    { num: "11", href: "docs/troubleshooting.html", title: "استكشاف الأخطاء" },
-    { num: "12", href: "docs/publishing.html", title: "النشر على pub.dev" },
-    { num: "13", href: "docs/contributing.html", title: "المساهمة في المشروع" },
-    { num: "14", href: "docs/license.html", title: "الترخيص" },
+    { num: "01", href: "doc/index.html", title: "الصفحة الرئيسية" },
+    { num: "02", href: "doc/getting-started.html", title: "البدء السريع" },
+    { num: "03", href: "doc/architecture.html", title: "المعمارية العامة" },
+    { num: "04", href: "doc/cli.html", title: "أوامر الـ CLI" },
+    { num: "05", href: "doc/project-generation.html", title: "إنشاء مشروع (create)" },
+    { num: "06", href: "doc/authentication.html", title: "أنظمة تسجيل الدخول" },
+    { num: "07", href: "doc/feature-generation.html", title: "توليد Feature (الدرس الكامل)" },
+    { num: "08", href: "doc/templates.html", title: "نظام القوالب" },
+    { num: "09", href: "doc/configuration.html", title: "الإعدادات" },
+    { num: "10", href: "doc/testing.html", title: "الاختبارات" },
+    { num: "11", href: "doc/troubleshooting.html", title: "استكشاف الأخطاء" },
+    { num: "12", href: "doc/publishing.html", title: "النشر على pub.dev" },
+    { num: "13", href: "doc/contributing.html", title: "المساهمة في المشروع" },
+    { num: "14", href: "doc/license.html", title: "الترخيص" },
   ];
 
   var IMPORTANT_FILES = [
